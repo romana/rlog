@@ -1,5 +1,6 @@
 package main
 
+import "os"
 import "github.com/romana/rlog"
 
 func someRecursiveFunction(x int) {
@@ -17,6 +18,7 @@ func someRecursiveFunction(x int) {
 }
 
 func main() {
+	// Show different log levels
 	rlog.Info("Start of program")
 	rlog.Info("rlog is controlled via environment variables.")
 	rlog.Info("Try the following settings:")
@@ -25,10 +27,21 @@ func main() {
 	rlog.Info("   export RLOG_CALLER_INFO=yes")
 	rlog.Debug("You only see this if you did 'export RLOG_LOG_LEVEL=DEBUG'")
 	rlog.Infof("Format %s are possible %d", "strings", 123)
-	rlog.Trace(1, "Trace messages have their own numeric levels")
-	rlog.Trace(1, "To see them set RLOG_TRACE_LEVEL to the cut-off number")
-	someRecursiveFunction(1)
 	rlog.Warn("Warning level log message")
 	rlog.Error("Error level log message")
 	rlog.Critical("Critical level log message")
+
+	// Example of selective trace logging
+	rlog.Trace(1, "Trace messages have their own numeric levels")
+	rlog.Trace(1, "To see them set RLOG_TRACE_LEVEL to the cut-off number")
+	someRecursiveFunction(1)
+
+	// Example of redirecting log output to a file at runtime
+	newLogFile, err := os.OpenFile("/tmp/rlog-output.log", os.O_WRONLY|os.O_CREATE, 0777)
+	if err == nil {
+		rlog.Info("About to change log output. Check /tmp/rlog-output.log...")
+		rlog.SetNewLogWriter(newLogFile)
+		rlog.Info("This should go to the new logfile")
+	}
+
 }

@@ -17,6 +17,7 @@ package rlog
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path"
@@ -64,6 +65,9 @@ var levelNumbers = map[string]int{
 var settingTraceLevel int = -1        // -1 indicates 'not set' -> no tracing
 var settingLogLevel int = levelInfo   // by default we log INFO or higher
 var settingGetCallerInfo bool = false // whether we log info about calling function
+var settingLogTime bool = true        // whether date/time should be logged
+var settingDateTimeFlags int          // flags for date/time output
+var logWriter *log.Logger
 
 // init extracts settings for our logger from environment variables when the
 // module is imported.
@@ -71,8 +75,9 @@ func init() {
 	var err error
 
 	logLevelEnv := strings.ToUpper(os.Getenv("RLOG_LOG_LEVEL"))
-	callerInfoEnv := strings.ToUpper(os.Getenv("RLOG_CALLER_INFO"))
-	traceLevelEnv := strings.ToUpper(os.Getenv("RLOG_TRACE_LEVEL"))
+	callerInfoEnv := os.Getenv("RLOG_CALLER_INFO")
+	traceLevelEnv := os.Getenv("RLOG_TRACE_LEVEL")
+	dontLogTimeEnv := os.Getenv("RLOG_LOG_NOTIME")
 
 	// Evaluating the desired log level
 	levelVal, ok := levelNumbers[logLevelEnv]
@@ -85,14 +90,11 @@ func init() {
 		}
 	}
 
-	// Evaluating the caller info variable. ParseBool unfortunately doesn't
-	// recognize 'y', or 'yes' as 'true' values. So we are checking for those
-	// manually.
-	var getCallerInfo bool
-	getCallerInfo, err = strconv.ParseBool(callerInfoEnv)
-	if (err == nil && getCallerInfo) || callerInfoEnv == "Y" || callerInfoEnv == "YES" {
-		settingGetCallerInfo = true
-	}
+	// Evaluating the caller info variable.
+	settingGetCallerInfo = isTrueBoolString(callerInfoEnv)
+
+	// Evaluating whether date/time should be logged with each message
+	settingLogTime = !isTrueBoolString(dontLogTimeEnv)
 
 	// Evaluating the trace level variable
 	if traceLevelEnv != "" {
@@ -103,6 +105,34 @@ func init() {
 			}
 		}
 	}
+
+	// Initialize the logger we will use throughout
+	settingDateTimeFlags = 0
+	if settingLogTime {
+		settingDateTimeFlags = log.Ldate | log.Ltime
+	}
+	SetNewLogWriter(os.Stderr)
+}
+
+// SetNewLogWriter re-wires the log output to a new io.Writer. By default rlog
+// logs to os.Stderr, but this function can be used to direct the output
+// somewhere else.
+func SetNewLogWriter(writer io.Writer) {
+	logWriter = log.New(writer, "", settingDateTimeFlags)
+}
+
+// isTrueBoolString tests a string to see if it represents a 'true' value.
+// The ParseBool function unfortunately doesn't recognize 'y' or 'yes', which
+// is why we added that test here as well.
+func isTrueBoolString(str string) bool {
+	str = strings.ToUpper(str)
+	if str == "Y" || str == "YES" {
+		return true
+	}
+	if isTrue, err := strconv.ParseBool(str); err == nil && isTrue {
+		return true
+	}
+	return false
 }
 
 // basicLog is called by all the 'level 'functions.
@@ -148,7 +178,7 @@ func basicLog(logLevel int, format string, prefixAddition string, a ...interface
 		msg = fmt.Sprintln(a...)
 	}
 	levelDecoration := levelStrings[logLevel] + prefixAddition
-	log.Printf("%-9s: %s%s", levelDecoration, callerInfo, msg)
+	logWriter.Printf("%-9s: %s%s", levelDecoration, callerInfo, msg)
 }
 
 // Trace is for low level tracing of activities. It takes an additional 'level'
