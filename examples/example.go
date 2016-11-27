@@ -36,7 +36,7 @@ func main() {
 	rlog.Trace(1, "To see them set RLOG_TRACE_LEVEL to the cut-off number")
 	someRecursiveFunction(1)
 
-	// Example of redirecting log output to a file at runtime
+	// Example of redirecting log output to a new file at runtime
 	newLogFile, err := os.OpenFile("/tmp/rlog-output.log", os.O_WRONLY|os.O_CREATE, 0777)
 	if err == nil {
 		rlog.Info("About to change log output. Check /tmp/rlog-output.log...")

@@ -122,6 +122,9 @@ func init() {
 	// Initialize the logger we will use throughout
 	settingDateTimeFlags = 0
 	if settingLogTime {
+		// Store the flags that enable date/time logging, since that's
+		// controlled by an environment variable. Any new loggers created at
+		// runtime should inherit the same setting (the same flags).
 		settingDateTimeFlags = log.Ldate | log.Ltime
 	}
 	SetNewLogWriter(logWriter)
@@ -131,6 +134,7 @@ func init() {
 // logs to os.Stderr, but this function can be used to direct the output
 // somewhere else.
 func SetNewLogWriter(writer io.Writer) {
+	// Use the stored date/time flag settings
 	logWriter = log.New(writer, "", settingDateTimeFlags)
 }
 
