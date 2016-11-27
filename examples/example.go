@@ -22,7 +22,7 @@ func main() {
 	rlog.Info("Try the following settings:")
 	rlog.Info("   export RLOG_LOG_LEVEL=DEBUG")
 	rlog.Info("   export RLOG_TRACE_LEVEL=5")
-	rlog.Info("   export RLOG_CALLER_INFO=1")
+	rlog.Info("   export RLOG_CALLER_INFO=yes")
 	rlog.Debug("You only see this if you did 'export RLOG_LOG_LEVEL=DEBUG'")
 	rlog.Infof("Format %s are possible %d", "strings", 123)
 	rlog.Trace(1, "Trace messages have their own numeric levels")

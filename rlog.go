@@ -19,8 +19,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"runtime"
 	"strconv"
+	"strings"
 )
 
 // The known log levels
@@ -68,9 +70,9 @@ var settingGetCallerInfo bool = false // whether we log info about calling funct
 func init() {
 	var err error
 
-	logLevelEnv := os.Getenv("RLOG_LOG_LEVEL")
-	callerInfoEnv := os.Getenv("RLOG_CALLER_INFO")
-	traceLevelEnv := os.Getenv("RLOG_TRACE_LEVEL")
+	logLevelEnv := strings.ToUpper(os.Getenv("RLOG_LOG_LEVEL"))
+	callerInfoEnv := strings.ToUpper(os.Getenv("RLOG_CALLER_INFO"))
+	traceLevelEnv := strings.ToUpper(os.Getenv("RLOG_TRACE_LEVEL"))
 
 	// Evaluating the desired log level
 	levelVal, ok := levelNumbers[logLevelEnv]
@@ -83,10 +85,13 @@ func init() {
 		}
 	}
 
-	// Evaluating the caller info variable
+	// Evaluating the caller info variable. ParseBool unfortunately doesn't
+	// recognize 'y', or 'yes' as 'true' values. So we are checking for those
+	// manually.
 	var getCallerInfo bool
-	if getCallerInfo, err = strconv.ParseBool(callerInfoEnv); err == nil {
-		settingGetCallerInfo = getCallerInfo
+	getCallerInfo, err = strconv.ParseBool(callerInfoEnv)
+	if (err == nil && getCallerInfo) || callerInfoEnv == "Y" || callerInfoEnv == "YES" {
+		settingGetCallerInfo = true
 	}
 
 	// Evaluating the trace level variable
@@ -115,9 +120,23 @@ func basicLog(logLevel int, format string, prefixAddition string, a ...interface
 	// Extract information about the caller of the log function, if requested.
 	callerInfo := ""
 	if settingGetCallerInfo {
-		if pc, filename, line, ok := runtime.Caller(2); ok {
+		if pc, fullFilePath, line, ok := runtime.Caller(2); ok {
 			callingFuncName := runtime.FuncForPC(pc).Name()
-			callerInfo = fmt.Sprintf("[%s:%d (%s)] ", filename, line, callingFuncName)
+			// We only want to print file and package name, so use the last two
+			// elements of the full path. The path package deals with different
+			// path formats on different systems, so we use that instead of
+			// just string-split.
+			dirPath, fileName := path.Split(fullFilePath)
+			var moduleName string
+			if dirPath != "" {
+				dirPath = dirPath[:len(dirPath)-1]
+				dirPath, moduleName = path.Split(dirPath)
+			} else {
+				moduleName = ""
+			}
+
+			callerInfo = fmt.Sprintf("[%s/%s:%d (%s)] ", moduleName, fileName,
+				line, callingFuncName)
 		}
 	}
 
@@ -128,8 +147,8 @@ func basicLog(logLevel int, format string, prefixAddition string, a ...interface
 	} else {
 		msg = fmt.Sprintln(a...)
 	}
-	levelDecoration := levelStrings[logLevel]
-	log.Printf("%s%s: %s%s", levelDecoration, prefixAddition, callerInfo, msg)
+	levelDecoration := levelStrings[logLevel] + prefixAddition
+	log.Printf("%-9s: %s%s", levelDecoration, callerInfo, msg)
 }
 
 // Trace is for low level tracing of activities. It takes an additional 'level'
