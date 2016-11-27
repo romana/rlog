@@ -67,6 +67,7 @@ var settingLogLevel int = levelInfo   // by default we log INFO or higher
 var settingGetCallerInfo bool = false // whether we log info about calling function
 var settingLogTime bool = true        // whether date/time should be logged
 var settingDateTimeFlags int          // flags for date/time output
+var settingLogFile string = ""        // logfile name
 var logWriter *log.Logger
 
 // init extracts settings for our logger from environment variables when the
@@ -78,6 +79,7 @@ func init() {
 	callerInfoEnv := os.Getenv("RLOG_CALLER_INFO")
 	traceLevelEnv := os.Getenv("RLOG_TRACE_LEVEL")
 	dontLogTimeEnv := os.Getenv("RLOG_LOG_NOTIME")
+	logFileEnv := os.Getenv("RLOG_LOG_FILE")
 
 	// Evaluating the desired log level
 	levelVal, ok := levelNumbers[logLevelEnv]
@@ -106,12 +108,23 @@ func init() {
 		}
 	}
 
+	// By default we log to stderr...
+	logWriter := os.Stderr
+
+	// ... but if requested we'll create and/or append to a logfile instead
+	if logFileEnv != "" {
+		newLogFile, err := os.OpenFile(logFileEnv, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		if err == nil {
+			logWriter = newLogFile
+		}
+	}
+
 	// Initialize the logger we will use throughout
 	settingDateTimeFlags = 0
 	if settingLogTime {
 		settingDateTimeFlags = log.Ldate | log.Ltime
 	}
-	SetNewLogWriter(os.Stderr)
+	SetNewLogWriter(logWriter)
 }
 
 // SetNewLogWriter re-wires the log output to a new io.Writer. By default rlog

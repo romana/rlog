@@ -46,6 +46,10 @@
 //                     environments that use systemd where access to the logs
 //                     via their logging tools already gives you time stamps.
 //                     Default: no (meaning that time/date is logged)
+// * RLOG_LOG_FILE:    Provide an filename here to determine where the logfile
+//                     is written. By default (if this variable is not defined)
+//                     the log output is simply written to stderr.
+//                     Default: Not set (meaning that output goes to stderr)
 //
 // Please note! If these environment variables have incorrect or misspelled
 // values then they will be silently ignored and a default value will be used.
@@ -62,6 +66,8 @@
 //		   rlog.Trace(2, "A trace message")
 //		   rlog.Trace(3, "An even deeper trace message")
 //	   }
+//
+// For a more interesting example, please check out 'examples/example.go'.
 //
 
 package rlog

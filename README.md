@@ -16,6 +16,11 @@ library.
 * Can be configured to print caller info (filename and line, function name).
 * Has NO external dependencies, except things contained in the standard Go
   library.
+* Logging of date and time can be disabled (useful in case of systemd, which
+  adds its own time stamps in its log database).
+* By default logs to stderr. A different logfile can be configured via
+  environment variable. Also, a different io.Writer can be specified by the
+  program at any time, thus redirecting log output on the fly.
 
 Rlog is configured via the following environment variables:
 
@@ -26,7 +31,7 @@ Rlog is configured via the following environment variables:
                     "INFO". If it is set to "NONE" then all logging is
                     disabled, except Trace logs, which are controlled via a
                     separate variable.
-                    Default: INFO
+                    Default: INFO (meaning that INFO and higher is logged)
 * RLOG_TRACE_LEVEL: "Trace" log messages take an additional numeric level as
                     first parameter. The user can specify an arbitrary
                     number of levels. Set RLOG_TRACE_LEVEL to a number. All
@@ -35,13 +40,23 @@ Rlog is configured via the following environment variables:
                     then no Trace messages are printed. The idea is that the
                     higher the RLOG_TRACE_LEVEL value, the more 'chatty' and
                     verbose the Trace message output becomes.
-                    Default: -1
+                    Default: -1 (meaning that no trace messages are logged)
 * RLOG_CALLER_INFO: If this variable is set to "1", "yes" or something else
                     that evaluates to 'true' then the message also contains
                     the caller information, consisting of the file and line
                     number as well as function name from which the log
                     message was called.
-                    Default: no
+                    Default: no (meaning that no caller info is logged)
+* RLOG_LOG_NOTIME:  If this variable is set to "1", "yes" or something else
+                    that evaluates to 'true' then no date/time stamp is
+                    logged with each log message. This is useful in
+                    environments that use systemd where access to the logs
+                    via their logging tools already gives you time stamps.
+                    Default: no (meaning that time/date is logged)
+* RLOG_LOG_FILE:    Provide an filename here to determine where the logfile
+                    is written. By default (if this variable is not defined)
+                    the log output is simply written to stderr.
+                    Default: Not set (meaning that output goes to stderr)
 
 Please note! If these environment variables have incorrect or misspelled
 values then they will be silently ignored and a default value will be used.
@@ -59,4 +74,5 @@ values then they will be silently ignored and a default value will be used.
  	   rlog.Trace(3, "An even deeper trace message")
     }
 
+For a more interesting example, please check out 'examples/example.go'.
 
