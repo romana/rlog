@@ -48,7 +48,7 @@ values then they will be silently ignored and a default value will be used.
 
 ## Usage example
 
-    import "github.com/romana/core/common/rlog"
+    import "github.com/romana/rlog"
     func main() {
  	   rlog.Debug("A debug message: For the developer")
  	   rlog.Info("An info message: Normal operation messages")
