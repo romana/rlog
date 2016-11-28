@@ -5,6 +5,9 @@
 // environment variables and has no dependencies other than the standard Golang
 // library.
 //
+// It is called "rlog", because it was originally written for the Romana project
+// (https://github.com/romana/romana).
+//
 //
 // Features
 // --------
@@ -105,16 +108,16 @@
 //     export RLOG_LOG_LEVEL=WARN,ex*=DEBUG
 //
 //     # DEBUG level for example.go, INFO for everyone else, since INFO is the
-//     # default level is nothing is specified.
+//     # default level if nothing is specified.
 //     export RLOG_LOG_LEVEL=example.go=DEBUG
 //
 //     # DEBUG level for example.go, no logging for anyone else.
 //     export RLOG_LOG_LEVEL=NONE,example.go=DEBUG
 //
-//     # Multiple files' levels can be specified
+//     # Multiple files' levels can be specified.
 //     export RLOG_LOG_LEVEL=NONE,example.go=DEBUG,foo.go=INFO
 //
-//     # The default log level can be anywhere in the list
+//     # The default log level can appear anywhere in the list.
 //     export RLOG_LOG_LEVEL=example.go=DEBUG,INFO,foo.go=WARN
 //
 //
