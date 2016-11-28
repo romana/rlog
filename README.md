@@ -10,6 +10,8 @@ It is called "rlog", because it was originally written for the Romana project
 
 ## Features
 
+* Is configured through environment variables: No need to call a special
+  init function of some kind to initialize and configure the logger.
 * Offers familiar and easy to use log functions for the usual levels: Debug,
   Info, Warn, Error and Critical.
 * Offers an additional multi level logging facility with arbitrary depth,
@@ -26,6 +28,13 @@ It is called "rlog", because it was originally written for the Romana project
 * By default logs to stderr. A different logfile can be configured via
   environment variable. Also, a different io.Writer can be specified by the
   program at any time, thus redirecting log output on the fly.
+
+
+## Defaults
+
+By default rlog logs all messages of level INFO and up. Trace messages are
+not logged. Messages contain time stamps and output is sent to stderr. All
+those defaults can be changed through environment variables.
 
 
 ## Controlling rlog through environment variables
@@ -124,7 +133,7 @@ More examples:
     func main() {
  	   rlog.Debug("A debug message: For the developer")
  	   rlog.Info("An info message: Normal operation messages")
- 	   rlog.Warn("A warning message: Intermittend issues, high load, etc.")
+ 	   rlog.Warn("A warning message: Intermittent issues, high load, etc.")
  	   rlog.Error("An error message: An error occurred, I will recover.")
  	   rlog.Critical("A critical message: That's it! I give up!")
  	   rlog.Trace(2, "A trace message")
