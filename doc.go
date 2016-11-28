@@ -89,13 +89,19 @@
 // Per file level log and trace levels
 // -----------------------------------
 //
-// Log and trace levels can not only be configured 'globally' with a single value,
-// but can also independently be set for individual files. This is useful if
-// enabling high trace levels or DEBUG logging for the entire executable would
-// fill up logs or consume too many resources.
+// In most cases you might want to set just a single log or trace level, which
+// is then applied to all log messages in your program:
 //
-// If your executable is compiled out of several files and one of those files is
-// called 'example.go' then you could set log levels like this:
+//     export RLOG_LOG_LEVEL=INFO
+//     export RLOG_TRACE_LEVEL=3
+//
+// However, with rlog the log and trace levels can not only be configured
+// 'globally' with a single value, but can also independently be set for
+// individual files. This is useful if enabling high trace levels or DEBUG logging
+// for the entire executable would fill up logs or consume too many resources.
+//
+// For example, if your executable is compiled out of several files and one of
+// those files is called 'example.go' then you could set log levels like this:
 //
 //     export RLOG_LOG_LEVEL=INFO,example.go=DEBUG
 //
@@ -104,12 +110,14 @@
 //
 // Similarly, you can set trace levels for individual files:
 //
-//     export RLOG_TRACE_LEVEL=example.go=4,2
+//     export RLOG_TRACE_LEVEL=example.go=5,2
 //
-// This sets a trace level of 4 for example.go and 2 for everyone else.
+// This sets a trace level of 5 for example.go and 2 for everyone else.
 //
-// Note that as before, if no global log level is specified then INFO is assumed
-// to be the global log level.
+// Note that as before, if in RLOG_LOG_LEVEL no global log level is specified then
+// INFO is assumed to be the global log level. If in RLOG_TRACE_LEVEL no global
+// trace level is specified then -1 (no trace output) is assumed as the global
+// trace level.
 //
 // More examples:
 //
