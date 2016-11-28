@@ -279,7 +279,6 @@ func isTrueBoolString(str string) bool {
 // decorates it accordingly and assembles the entire line. It then
 // uses the standard log package to finally output the message.
 func basicLog(logLevel int, traceLevel int, format string, prefixAddition string, a ...interface{}) {
-
 	// Extract information about the caller of the log function, if requested.
 	var callingFuncName string = ""
 	var moduleAndFileName string = ""
@@ -297,7 +296,6 @@ func basicLog(logLevel int, traceLevel int, format string, prefixAddition string
 			dirPath, moduleName = path.Split(dirPath)
 		}
 		moduleAndFileName = moduleName + "/" + fileName
-
 	}
 
 	// Perform tests to see if we should log this message.
