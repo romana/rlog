@@ -27,15 +27,17 @@ import (
 	"strings"
 )
 
+const notATrace = -1
+
 // The known log levels
 const (
-	levelTrace = iota
-	levelDebug
-	levelInfo
-	levelWarn
-	levelErr
+	levelNone = iota
 	levelCrit
-	levelNone
+	levelErr
+	levelWarn
+	levelInfo
+	levelDebug
+	levelTrace
 )
 
 // Translation map from level to string representation
@@ -60,38 +62,96 @@ var levelNumbers = map[string]int{
 	"NONE":     levelNone,
 }
 
-// FilterSpec holds a list of filters.
+// FilterSpec holds a list of filters. These are applied to the 'caller'
+// information of a log message (calling module and file) to see if this
+// message should be logged. Different log or trace levels per file can
+// therefore be maintained. For log messages this is the log level, for trace
+// messages this is going to be the trace level.
 type FilterSpec struct {
 	Filters []Filter
 }
 
 // FromString initializes FilterSpec from string.
-// format "<filter>,<filter>,[<filter>]..."
-//     filter:
-//       <pattern=Level>
-//     pattern:
-//       shell glob to match caller filename
-//     Level:
-//       trace level of the logs to enable in mathed files
 //
-//     example:
-//        "client.go=1,ip*=5"
-func (spec *FilterSpec) FromString(s string) {
+// Use the isTraceLevel flag to indicate whether the levels are numeric (for
+// trace messages) or are level strings (for log messages).
+//
+// Format "<filter>,<filter>,[<filter>]..."
+//     filter:
+//       <pattern=level> | <level>
+//     pattern:
+//       shell glob to match caller file name
+//     level:
+//       log or trace level of the logs to enable in matched files.
+//
+//     Example:
+//     - "RLOG_TRACE_LEVEL=3"
+//       Just a global trace level of 3 for all files and modules.
+//     - "RLOG_TRACE_LEVEL=client.go=1,ip*=5,3"
+//       This enables trace level 1 in client.go, level 5 in all files whose
+//       names start with 'ip', and level 3 for everyone else.
+//     - "RLOG_LOG_LEVEL=DEBUG"
+//       Global log level DEBUG for all files and modules.
+//     - "RLOG_LOG_LEVEL=client.go=ERROR,INFO,ip*=WARN"
+//       ERROR and higher for client.go, WARN or higher for all files whose
+//       name starts with 'ip', INFO for everyone else.
+func (spec *FilterSpec) FromString(s string, isTraceLevels bool, globalLevelDefault int) {
+	var globalLevel int = globalLevelDefault
+	var levelToken string
+	var matchToken string
+
 	fields := strings.Split(s, ",")
 
 	for _, f := range fields {
-		// tokens should contain two elements: The filename and the trace level.
+		var filterLevel int
+		var err error
+		var ok bool
+
+		// Tokens should contain two elements: The filename and the trace
+		// level. If there is only one token then we have to assume that this
+		// is the 'global' filter (without filename component).
 		tokens := strings.Split(f, "=")
-		if len(tokens) != 2 {
-			return
+		if len(tokens) == 1 {
+			// Global level. We'll store this one for the end, since it needs
+			// to sit last in the list of filters (during evaluation in gets
+			// checked last).
+			matchToken = ""
+			levelToken = tokens[0]
+		} else if len(tokens) == 2 {
+			matchToken = tokens[0]
+			levelToken = tokens[1]
+		} else {
+			// Skip anything else that's malformed
+			continue
+		}
+		if isTraceLevels {
+			// The level token should contain a numeric value
+			if filterLevel, err = strconv.Atoi(levelToken); err != nil {
+				continue
+			}
+		} else {
+			// The level token should contain the name of a log level
+			levelToken = strings.ToUpper(levelToken)
+			filterLevel, ok = levelNumbers[levelToken]
+			if !ok || filterLevel == levelTrace {
+				// User not allowed to set trace log levels, so if that or
+				// not a known log level then this specification will be
+				// ignored.
+				continue
+			}
+
 		}
 
-		if filterLevel, err := strconv.Atoi(tokens[1]); err == nil {
-			spec.Filters = append(spec.Filters, Filter{tokens[0], filterLevel})
+		if matchToken == "" {
+			// Global level just remembered for now, not yet added
+			globalLevel = filterLevel
 		} else {
-			return
+			spec.Filters = append(spec.Filters, Filter{matchToken, filterLevel})
 		}
 	}
+
+	// Now add the global level, so that later it will be evaluated last.
+	spec.Filters = append(spec.Filters, Filter{"", globalLevel})
 
 	return
 }
@@ -100,92 +160,75 @@ func (spec *FilterSpec) FromString(s string) {
 // by any of the filters
 func (spec *FilterSpec) matchFilters(filename string, level int) bool {
 
-	// If no filters don't match anything.
+	// If there are no filters then we don't match anything.
 	if len(spec.Filters) == 0 {
 		return false
 	}
 
 	// If at least one filter matches.
 	for _, filter := range spec.Filters {
-		if filter.match(filename, level) {
-			return true
+		if matched, loggit := filter.match(filename, level); matched {
+			return loggit
 		}
 	}
 
 	return false
 }
 
-// Filter holds filename and trace level to match logs.
+// Filter holds filename and level to match logs against log messages.
 type Filter struct {
 	Pattern string
 	Level   int
 }
 
-// match checks if given filename and trace level are matched by
-// this filter.
-func (f Filter) match(filename string, traceLevel int) bool {
-	match, _ := filepath.Match(f.Pattern, filepath.Base(filename))
-	if match && f.Level >= traceLevel {
-		return true
+// match checks if given filename and level are matched by
+// this filter. Returns two bools: One to indicate whether a filename match was
+// made, and the second to indicate whether the message should be logged
+// (matched the level).
+func (f Filter) match(filename string, level int) (bool, bool) {
+	var match bool
+	if f.Pattern != "" {
+		match, _ = filepath.Match(f.Pattern, filepath.Base(filename))
+	} else {
+		match = true
+	}
+	if match {
+		return true, level <= f.Level
 	}
 
-	return false
+	return false, false
 }
 
 // Rlog is controlled via environment variables. Those things won't change on
 // us. Therefore, we can look them up once and store them in module level
 // global variables.
-var settingTraceLevel int = -1        // -1 indicates 'not set' -> no tracing
-var settingLogLevel int = levelInfo   // by default we log INFO or higher
-var settingGetCallerInfo bool = false // whether we log info about calling function
-var settingLogTime bool = true        // whether date/time should be logged
-var settingDateTimeFlags int          // flags for date/time output
-var settingLogFile string = ""        // logfile name
-var logWriter *log.Logger
-var settingCallerFilter string = ""
-var filterSpec = new(FilterSpec)
+var settingShowCallerInfo bool = false // whether we log info about calling function
+var settingDateTimeFlags int           // flags for date/time output
+var settingLogFile string = ""         // logfile name
+
+var logWriter *log.Logger             // the writer to which output is sent
+var logFilterSpec = new(FilterSpec)   // filters for log messages
+var traceFilterSpec = new(FilterSpec) // filters for trace messages
 
 // init extracts settings for our logger from environment variables when the
 // module is imported.
 func init() {
-	var err error
-
-	logLevelEnv := strings.ToUpper(os.Getenv("RLOG_LOG_LEVEL"))
+	logLevelEnv := os.Getenv("RLOG_LOG_LEVEL")
 	callerInfoEnv := os.Getenv("RLOG_CALLER_INFO")
 	traceLevelEnv := os.Getenv("RLOG_TRACE_LEVEL")
 	dontLogTimeEnv := os.Getenv("RLOG_LOG_NOTIME")
 	logFileEnv := os.Getenv("RLOG_LOG_FILE")
-	settingCallerFilter := os.Getenv("RLOG_CALLER_FILTER")
-
-	// Evaluating the desired log level
-	levelVal, ok := levelNumbers[logLevelEnv]
-	if ok {
-		if levelVal != levelTrace {
-			// User can't set things to 'Trace', so we would leave it at
-			// the default, which is 'Info'. But other than that the user
-			// has specified a valid level value, so we can set this now.
-			settingLogLevel = levelVal
-		}
-	}
 
 	// Evaluating the caller info variable.
-	settingGetCallerInfo = isTrueBoolString(callerInfoEnv)
+	settingShowCallerInfo = isTrueBoolString(callerInfoEnv)
 
 	// Evaluating whether date/time should be logged with each message
-	settingLogTime = !isTrueBoolString(dontLogTimeEnv)
+	// By default (if flag is not set) we want to log date and time.
+	logTimeDate := !isTrueBoolString(dontLogTimeEnv)
 
-	// Initialize filters.
-	filterSpec.FromString(settingCallerFilter)
-
-	// Evaluating the trace level variable
-	if traceLevelEnv != "" {
-		var traceLevel int
-		if traceLevel, err = strconv.Atoi(traceLevelEnv); err == nil {
-			if traceLevel >= -1 {
-				settingTraceLevel = traceLevel
-			}
-		}
-	}
+	// Initialize filters for trace and log levels.
+	traceFilterSpec.FromString(traceLevelEnv, true, -1)
+	logFilterSpec.FromString(logLevelEnv, false, levelInfo)
 
 	// By default we log to stderr...
 	logWriter := os.Stderr
@@ -200,7 +243,7 @@ func init() {
 
 	// Initialize the logger we will use throughout
 	settingDateTimeFlags = 0
-	if settingLogTime {
+	if logTimeDate {
 		// Store the flags that enable date/time logging, since that's
 		// controlled by an environment variable. Any new loggers created at
 		// runtime should inherit the same setting (the same flags).
@@ -231,36 +274,40 @@ func isTrueBoolString(str string) bool {
 	return false
 }
 
-// basicLog is called by all the 'level 'functions.
+// basicLog is called by all the 'level' log functions.
 // It checks what is configured to be included in the log message,
 // decorates it accordingly and assembles the entire line. It then
 // uses the standard log package to finally output the message.
-func basicLog(logLevel int, logTraceLevel int, format string, prefixAddition string, a ...interface{}) {
+func basicLog(logLevel int, traceLevel int, format string, prefixAddition string, a ...interface{}) {
 
 	// Extract information about the caller of the log function, if requested.
-	var callingFuncName string
-	/*
-		pc, filename, line, callerInfoAvailable := runtime.Caller(2)
-		if callerInfoAvailable {
-			callingFuncName = runtime.FuncForPC(pc).Name()
+	var callingFuncName string = ""
+	var moduleAndFileName string = ""
+	pc, fullFilePath, line, ok := runtime.Caller(2)
+	if ok {
+		callingFuncName = runtime.FuncForPC(pc).Name()
+		// We only want to print or examine file and package name, so use the
+		// last two elements of the full path. The path package deals with
+		// different path formats on different systems, so we use that instead
+		// of just string-split.
+		dirPath, fileName := path.Split(fullFilePath)
+		var moduleName string = ""
+		if dirPath != "" {
+			dirPath = dirPath[:len(dirPath)-1]
+			dirPath, moduleName = path.Split(dirPath)
 		}
-	*/
+		moduleAndFileName = moduleName + "/" + fileName
+
+	}
 
 	// Perform tests to see if we should log this message.
 	var allowLog bool
-	if logLevel != levelTrace {
-		// If log is not a trace log then check log level.
-		if logLevel >= settingLogLevel {
+	if traceLevel == notATrace {
+		if logFilterSpec.matchFilters(moduleAndFileName, logLevel) {
 			allowLog = true
 		}
 	} else {
-		// Trace logs are allowed if either global tracel level matches
-		// or one of filters matches.
-		if logTraceLevel <= settingTraceLevel && logTraceLevel >= 0 {
-			allowLog = true
-		}
-
-		if filterSpec.matchFilters(filename, logTraceLevel) {
+		if traceFilterSpec.matchFilters(moduleAndFileName, traceLevel) {
 			allowLog = true
 		}
 	}
@@ -269,29 +316,9 @@ func basicLog(logLevel int, logTraceLevel int, format string, prefixAddition str
 	}
 
 	callerInfo := ""
-	if settingGetCallerInfo {
-		if pc, fullFilePath, line, ok := runtime.Caller(2); ok {
-			callingFuncName := runtime.FuncForPC(pc).Name()
-			// We only want to print file and package name, so use the last two
-			// elements of the full path. The path package deals with different
-			// path formats on different systems, so we use that instead of
-			// just string-split.
-			dirPath, fileName := path.Split(fullFilePath)
-			var moduleName string
-			if dirPath != "" {
-				dirPath = dirPath[:len(dirPath)-1]
-				dirPath, moduleName = path.Split(dirPath)
-			} else {
-				moduleName = ""
-			}
-
-			callerInfo = fmt.Sprintf("[%s/%s:%d (%s)] ", moduleName, fileName,
-				line, callingFuncName)
-		}
-		/*
-			if settingGetCallerInfo && callerInfoAvailable {
-				callerInfo = fmt.Sprintf("[%s:%d (%s)] ", filename, line, callingFuncName)
-		*/
+	if settingShowCallerInfo {
+		callerInfo = fmt.Sprintf("[%s:%d (%s)] ", moduleAndFileName,
+			line, callingFuncName)
 	}
 
 	// Assemble the actual log line
@@ -321,58 +348,56 @@ func Tracef(traceLevel int, format string, a ...interface{}) {
 	basicLog(levelTrace, traceLevel, format, prefixAddition, a...)
 }
 
-const NotATrace = -1
-
 // Debug prints a message if RLOG_LEVEL is set to DEBUG.
 func Debug(a ...interface{}) {
-	basicLog(levelDebug, NotATrace, "", "", a...)
+	basicLog(levelDebug, notATrace, "", "", a...)
 }
 
 // Debugf prints a message if RLOG_LEVEL is set to DEBUG, with formatting.
 func Debugf(format string, a ...interface{}) {
-	basicLog(levelDebug, NotATrace, format, "", a...)
+	basicLog(levelDebug, notATrace, format, "", a...)
 }
 
 // Info prints a message if RLOG_LEVEL is set to INFO or lower.
 func Info(a ...interface{}) {
-	basicLog(levelInfo, NotATrace, "", "", a...)
+	basicLog(levelInfo, notATrace, "", "", a...)
 }
 
 // Infof prints a message if RLOG_LEVEL is set to INFO or lower, with
 // formatting.
 func Infof(format string, a ...interface{}) {
-	basicLog(levelInfo, NotATrace, format, "", a...)
+	basicLog(levelInfo, notATrace, format, "", a...)
 }
 
 // Warn prints a message if RLOG_LEVEL is set to WARN or lower.
 func Warn(a ...interface{}) {
-	basicLog(levelWarn, NotATrace, "", "", a...)
+	basicLog(levelWarn, notATrace, "", "", a...)
 }
 
 // Warnf prints a message if RLOG_LEVEL is set to WARN or lower, with
 // formatting.
 func Warnf(format string, a ...interface{}) {
-	basicLog(levelWarn, NotATrace, format, "", a...)
+	basicLog(levelWarn, notATrace, format, "", a...)
 }
 
 // Error prints a message if RLOG_LEVEL is set to ERROR or lower.
 func Error(a ...interface{}) {
-	basicLog(levelErr, NotATrace, "", "", a...)
+	basicLog(levelErr, notATrace, "", "", a...)
 }
 
 // Errorf prints a message if RLOG_LEVEL is set to ERROR or lower, with
 // formatting.
 func Errorf(format string, a ...interface{}) {
-	basicLog(levelErr, NotATrace, format, "", a...)
+	basicLog(levelErr, notATrace, format, "", a...)
 }
 
 // Critical prints a message if RLOG_LEVEL is set to CRITICAL or lower.
 func Critical(a ...interface{}) {
-	basicLog(levelCrit, NotATrace, "", "", a...)
+	basicLog(levelCrit, notATrace, "", "", a...)
 }
 
 // Criticalf prints a message if RLOG_LEVEL is set to CRITICAL or lower, with
 // formatting.
 func Criticalf(format string, a ...interface{}) {
-	basicLog(levelCrit, NotATrace, format, "", a...)
+	basicLog(levelCrit, notATrace, format, "", a...)
 }
