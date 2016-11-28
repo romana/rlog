@@ -90,7 +90,7 @@ then applied to all log messages in your program:
     export RLOG_LOG_LEVEL=INFO
     export RLOG_TRACE_LEVEL=3
 
-However, with rlog the Log and trace levels can not only be configured
+However, with rlog the log and trace levels can not only be configured
 'globally' with a single value, but can also independently be set for
 individual files. This is useful if enabling high trace levels or DEBUG logging
 for the entire executable would fill up logs or consume too many resources.
