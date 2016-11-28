@@ -4,6 +4,7 @@ Rlog is a simple logging package. It is configurable 'from the outside' via
 environment variables and has no dependencies other than the standard Golang
 library.
 
+
 ## Features
 
 * Offers familiar and easy to use log functions for the usual levels: Debug,
@@ -22,6 +23,9 @@ library.
 * By default logs to stderr. A different logfile can be configured via
   environment variable. Also, a different io.Writer can be specified by the
   program at any time, thus redirecting log output on the fly.
+
+
+## Controlling rlog through environment variables
 
 Rlog is configured via the following environment variables:
 
