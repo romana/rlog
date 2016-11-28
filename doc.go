@@ -1,11 +1,13 @@
-// # rlog - A simple Golang logger without external dependencies
+// rlog - A simple Golang logger with lots of features and no external dependencies
+// ================================================================================
 //
 // Rlog is a simple logging package. It is configurable 'from the outside' via
 // environment variables and has no dependencies other than the standard Golang
 // library.
 //
 //
-// ## Features
+// Features
+// --------
 //
 // * Offers familiar and easy to use log functions for the usual levels: Debug,
 //   Info, Warn, Error and Critical.
@@ -25,7 +27,8 @@
 //   program at any time, thus redirecting log output on the fly.
 //
 //
-// ## Controlling rlog through environment variables
+// Controlling rlog through environment variables
+// ----------------------------------------------
 //
 // Rlog is configured via the following environment variables:
 //
@@ -70,7 +73,8 @@
 // values then they will be silently ignored and a default value will be used.
 //
 //
-// ## Per file level log and trace levels
+// Per file level log and trace levels
+// -----------------------------------
 //
 // Log and trace levels can not only be configured 'globally' with a single value,
 // but can also independently be set for individual files. This is useful if
@@ -114,7 +118,8 @@
 //     export RLOG_LOG_LEVEL=example.go=DEBUG,INFO,foo.go=WARN
 //
 //
-// ## Usage example
+// Usage example
+// -------------
 //
 //     import "github.com/romana/rlog"
 //

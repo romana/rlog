@@ -1,4 +1,4 @@
-# rlog - A simple Golang logger without external dependencies
+# rlog - A simple Golang logger with lots of features and no external dependencies
 
 Rlog is a simple logging package. It is configurable 'from the outside' via
 environment variables and has no dependencies other than the standard Golang
