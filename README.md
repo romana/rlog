@@ -61,7 +61,7 @@ Rlog is configured via the following environment variables:
                     environments that use systemd where access to the logs
                     via their logging tools already gives you time stamps.
                     Default: no (meaning that time/date is logged)
-* RLOG_LOG_FILE:    Provide an filename here to determine where the logfile
+* RLOG_LOG_FILE:    Provide a filename here to determine where the logfile
                     is written. By default (if this variable is not defined)
                     the log output is simply written to stderr.
                     Default: Not set (meaning that output goes to stderr)
