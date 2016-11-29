@@ -62,16 +62,16 @@ var levelNumbers = map[string]int{
 	"NONE":     levelNone,
 }
 
-// FilterSpec holds a list of filters. These are applied to the 'caller'
+// filterSpec holds a list of filters. These are applied to the 'caller'
 // information of a log message (calling module and file) to see if this
 // message should be logged. Different log or trace levels per file can
 // therefore be maintained. For log messages this is the log level, for trace
 // messages this is going to be the trace level.
-type FilterSpec struct {
-	Filters []Filter
+type filterSpec struct {
+	filters []filter
 }
 
-// FromString initializes FilterSpec from string.
+// fromString initializes filterSpec from string.
 //
 // Use the isTraceLevel flag to indicate whether the levels are numeric (for
 // trace messages) or are level strings (for log messages).
@@ -95,7 +95,7 @@ type FilterSpec struct {
 //     - "RLOG_LOG_LEVEL=client.go=ERROR,INFO,ip*=WARN"
 //       ERROR and higher for client.go, WARN or higher for all files whose
 //       name starts with 'ip', INFO for everyone else.
-func (spec *FilterSpec) FromString(s string, isTraceLevels bool, globalLevelDefault int) {
+func (spec *filterSpec) fromString(s string, isTraceLevels bool, globalLevelDefault int) {
 	var globalLevel int = globalLevelDefault
 	var levelToken string
 	var matchToken string
@@ -146,27 +146,27 @@ func (spec *FilterSpec) FromString(s string, isTraceLevels bool, globalLevelDefa
 			// Global level just remembered for now, not yet added
 			globalLevel = filterLevel
 		} else {
-			spec.Filters = append(spec.Filters, Filter{matchToken, filterLevel})
+			spec.filters = append(spec.filters, filter{matchToken, filterLevel})
 		}
 	}
 
 	// Now add the global level, so that later it will be evaluated last.
-	spec.Filters = append(spec.Filters, Filter{"", globalLevel})
+	spec.filters = append(spec.filters, filter{"", globalLevel})
 
 	return
 }
 
-// matchFilters checks if given filename and trace level are accepted
+// matchfilters checks if given filename and trace level are accepted
 // by any of the filters
-func (spec *FilterSpec) matchFilters(filename string, level int) bool {
+func (spec *filterSpec) matchfilters(filename string, level int) bool {
 
 	// If there are no filters then we don't match anything.
-	if len(spec.Filters) == 0 {
+	if len(spec.filters) == 0 {
 		return false
 	}
 
 	// If at least one filter matches.
-	for _, filter := range spec.Filters {
+	for _, filter := range spec.filters {
 		if matched, loggit := filter.match(filename, level); matched {
 			return loggit
 		}
@@ -175,8 +175,8 @@ func (spec *FilterSpec) matchFilters(filename string, level int) bool {
 	return false
 }
 
-// Filter holds filename and level to match logs against log messages.
-type Filter struct {
+// filter holds filename and level to match logs against log messages.
+type filter struct {
 	Pattern string
 	Level   int
 }
@@ -185,7 +185,7 @@ type Filter struct {
 // this filter. Returns two bools: One to indicate whether a filename match was
 // made, and the second to indicate whether the message should be logged
 // (matched the level).
-func (f Filter) match(filename string, level int) (bool, bool) {
+func (f filter) match(filename string, level int) (bool, bool) {
 	var match bool
 	if f.Pattern != "" {
 		match, _ = filepath.Match(f.Pattern, filepath.Base(filename))
@@ -207,8 +207,8 @@ var settingDateTimeFlags int           // flags for date/time output
 var settingLogFile string = ""         // logfile name
 
 var logWriter *log.Logger             // the writer to which output is sent
-var logFilterSpec = new(FilterSpec)   // filters for log messages
-var traceFilterSpec = new(FilterSpec) // filters for trace messages
+var logfilterSpec = new(filterSpec)   // filters for log messages
+var tracefilterSpec = new(filterSpec) // filters for trace messages
 
 // init extracts settings for our logger from environment variables when the
 // module is imported.
@@ -227,8 +227,8 @@ func init() {
 	logTimeDate := !isTrueBoolString(dontLogTimeEnv)
 
 	// Initialize filters for trace and log levels.
-	traceFilterSpec.FromString(traceLevelEnv, true, -1)
-	logFilterSpec.FromString(logLevelEnv, false, levelInfo)
+	tracefilterSpec.fromString(traceLevelEnv, true, -1)
+	logfilterSpec.fromString(logLevelEnv, false, levelInfo)
 
 	// By default we log to stderr...
 	logWriter := os.Stderr
@@ -301,11 +301,11 @@ func basicLog(logLevel int, traceLevel int, format string, prefixAddition string
 	// Perform tests to see if we should log this message.
 	var allowLog bool
 	if traceLevel == notATrace {
-		if logFilterSpec.matchFilters(moduleAndFileName, logLevel) {
+		if logfilterSpec.matchfilters(moduleAndFileName, logLevel) {
 			allowLog = true
 		}
 	} else {
-		if traceFilterSpec.matchFilters(moduleAndFileName, traceLevel) {
+		if tracefilterSpec.matchfilters(moduleAndFileName, traceLevel) {
 			allowLog = true
 		}
 	}
