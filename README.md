@@ -16,11 +16,13 @@ It is called "rlog", because it was originally written for the Romana project
   Info, Warn, Error and Critical.
 * Offers an additional multi level logging facility with arbitrary depth,
   called Trace.
-* Log and trace levels can be configured separately for individual files.
+* Log and trace levels can be configured separately for the individual files
+  that make up your executable.
 * Every log function comes in a 'plain' version (to be used like Println)
   and in a formatted version (to be used like Printf). For example, there
   is Debug() and Debugf(), which takes a format string as first parameter.
-* Can be configured to print caller info (filename and line, function name).
+* Can be configured to print caller info (module filename and line, function
+  name).
 * Has NO external dependencies, except things contained in the standard Go
   library.
 * Logging of date and time can be disabled (useful in case of systemd, which
@@ -48,8 +50,8 @@ Rlog is configured via the following environment variables:
                     "INFO". If it is set to "NONE" then all logging is
                     disabled, except Trace logs, which are controlled via a
                     separate variable. In addition, log levels can be set
-                    for individual files. See below for more information.
-                    Default: INFO (meaning that INFO and higher is logged)
+                    for individual files (see below for more information).
+                    Default: INFO - meaning that INFO and higher is logged.
 * RLOG_TRACE_LEVEL: "Trace" log messages take an additional numeric level as
                     first parameter. The user can specify an arbitrary
                     number of levels. Set RLOG_TRACE_LEVEL to a number. All
@@ -58,25 +60,26 @@ Rlog is configured via the following environment variables:
                     then no Trace messages are printed. The idea is that the
                     higher the RLOG_TRACE_LEVEL value, the more 'chatty' and
                     verbose the Trace message output becomes. In addition,
-                    trace levels can be set for individual files. See below
-                    for more information.
-                    Default: -1 (meaning that no trace messages are logged)
+                    trace levels can be set for individual files (see below
+                    for more information).
+                    Default: Not set - meaning that no trace messages are
+                    logged.
 * RLOG_CALLER_INFO: If this variable is set to "1", "yes" or something else
                     that evaluates to 'true' then the message also contains
                     the caller information, consisting of the file and line
                     number as well as function name from which the log
                     message was called.
-                    Default: no (meaning that no caller info is logged)
+                    Default: No - meaning that no caller info is logged.
 * RLOG_LOG_NOTIME:  If this variable is set to "1", "yes" or something else
                     that evaluates to 'true' then no date/time stamp is
                     logged with each log message. This is useful in
                     environments that use systemd where access to the logs
                     via their logging tools already gives you time stamps.
-                    Default: no (meaning that time/date is logged)
+                    Default: No - meaning that time/date is logged.
 * RLOG_LOG_FILE:    Provide a filename here to determine where the logfile
                     is written. By default (if this variable is not defined)
                     the log output is simply written to stderr.
-                    Default: Not set (meaning that output goes to stderr)
+                    Default: Not set - meaning that output goes to stderr.
 
 Please note! If these environment variables have incorrect or misspelled
 values then they will be silently ignored and a default value will be used.
@@ -91,19 +94,20 @@ then applied to all log messages in your program:
     export RLOG_TRACE_LEVEL=3
 
 However, with rlog the log and trace levels can not only be configured
-'globally' with a single value, but can also independently be set for
-individual files. This is useful if enabling high trace levels or DEBUG logging
-for the entire executable would fill up logs or consume too many resources.
+'globally' with a single value, but can also independently be set for the
+individual module files that were compiled into your executable. This is useful
+if enabling high trace levels or DEBUG logging for the entire executable would
+fill up logs or consume too many resources.
 
 For example, if your executable is compiled out of several files and one of
 those files is called 'example.go' then you could set log levels like this:
 
     export RLOG_LOG_LEVEL=INFO,example.go=DEBUG
 
-This would set the global log level to INFO, but for the file 'example.go' it
-would be DEBUG.
+This sets the global log level to INFO, but for the messages originating from
+the module file 'example.go' it is DEBUG.
 
-Similarly, you can set trace levels for individual files:
+Similarly, you can set trace levels for individual module files:
 
     export RLOG_TRACE_LEVEL=example.go=5,2
 

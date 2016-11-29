@@ -28,6 +28,7 @@ import (
 )
 
 const notATrace = -1
+const noTraceOutput = -1
 
 // The known log levels
 const (
@@ -151,7 +152,15 @@ func (spec *filterSpec) fromString(s string, isTraceLevels bool, globalLevelDefa
 	}
 
 	// Now add the global level, so that later it will be evaluated last.
-	spec.filters = append(spec.filters, filter{"", globalLevel})
+	// For trace levels we do something extra: There are possibly many trace
+	// messages, but most often trace level debugging is fully disabled. We
+	// want to optimize this. Therefore, a globalLevel of -1 (no trace levels)
+	// isn't stored in the filter chain. If no other trace filters were defined
+	// then this means the filter chain is empty, which can be tested very
+	// efficiently in the top-level trace functions for an early exit.
+	if !isTraceLevels || globalLevel != noTraceOutput {
+		spec.filters = append(spec.filters, filter{"", globalLevel})
+	}
 
 	return
 }
@@ -202,7 +211,7 @@ func (f filter) match(filename string, level int) (bool, bool) {
 // Rlog is controlled via environment variables. Those things won't change on
 // us. Therefore, we can look them up once and store them in module level
 // global variables.
-var settingShowCallerInfo bool = false // whether we log info about calling function
+var settingShowCallerInfo bool = false // whether we log caller info
 var settingDateTimeFlags int           // flags for date/time output
 var settingLogFile string = ""         // logfile name
 
@@ -226,8 +235,9 @@ func init() {
 	// By default (if flag is not set) we want to log date and time.
 	logTimeDate := !isTrueBoolString(dontLogTimeEnv)
 
-	// Initialize filters for trace and log levels.
-	tracefilterSpec.fromString(traceLevelEnv, true, -1)
+	// Initialize filters for trace (by default no trace output) and log levels
+	// (by default INFO level).
+	tracefilterSpec.fromString(traceLevelEnv, true, noTraceOutput)
 	logfilterSpec.fromString(logLevelEnv, false, levelInfo)
 
 	// By default we log to stderr...
@@ -336,14 +346,22 @@ func basicLog(logLevel int, traceLevel int, format string, prefixAddition string
 // what is specified in RLOG_TRACE_LEVEL. If RLOG_TRACE_LEVEL is not defined at
 // all then no trace messages are printed.
 func Trace(traceLevel int, a ...interface{}) {
-	prefixAddition := fmt.Sprintf("(%d)", traceLevel)
-	basicLog(levelTrace, traceLevel, "", prefixAddition, a...)
+	// There are possibly many trace messages. If trace logging isn't enabled
+	// then we want to get out of here as quickly as possible.
+	if len(tracefilterSpec.filters) > 0 {
+		prefixAddition := fmt.Sprintf("(%d)", traceLevel)
+		basicLog(levelTrace, traceLevel, "", prefixAddition, a...)
+	}
 }
 
 // Tracef prints trace messages, with formatting.
 func Tracef(traceLevel int, format string, a ...interface{}) {
-	prefixAddition := fmt.Sprintf("(%d)", traceLevel)
-	basicLog(levelTrace, traceLevel, format, prefixAddition, a...)
+	// There are possibly many trace messages. If trace logging isn't enabled
+	// then we want to get out of here as quickly as possible.
+	if len(tracefilterSpec.filters) > 0 {
+		prefixAddition := fmt.Sprintf("(%d)", traceLevel)
+		basicLog(levelTrace, traceLevel, format, prefixAddition, a...)
+	}
 }
 
 // Debug prints a message if RLOG_LEVEL is set to DEBUG.

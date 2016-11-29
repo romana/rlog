@@ -43,5 +43,4 @@ func main() {
 		rlog.SetNewLogWriter(newLogFile)
 		rlog.Info("This should go to the new logfile")
 	}
-
 }
