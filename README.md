@@ -160,12 +160,6 @@ For a more interesting example, please check out 'examples/example.go'.
 With time stamp, trace to level 2, but without caller info:
 
     2016/11/30 07:38:57 INFO     : Start of program
-    2016/11/30 07:38:57 INFO     : rlog is controlled via environment variables.
-    2016/11/30 07:38:57 INFO     : Try the following settings:
-    2016/11/30 07:38:57 INFO     :    export RLOG_LOG_LEVEL=DEBUG
-    2016/11/30 07:38:57 INFO     :    export RLOG_TRACE_LEVEL=5
-    2016/11/30 07:38:57 INFO     :    export RLOG_CALLER_INFO=yes
-    2016/11/30 07:38:57 INFO     : Format strings are possible 123
     2016/11/30 07:38:57 WARN     : Warning level log message
     2016/11/30 07:38:57 ERROR    : Error level log message
     2016/11/30 07:38:57 CRITICAL : Critical level log message
@@ -174,36 +168,21 @@ With time stamp, trace to level 2, but without caller info:
     2016/11/30 07:38:57 TRACE(1) : We're 1 levels down now...
     2016/11/30 07:38:57 TRACE(2) : We're 2 levels down now...
     2016/11/30 07:38:57 INFO     : Reached end of recursion at level 10
-    2016/11/30 07:38:57 INFO     : About to change log output. Check /tmp/rlog-output.log...
 
 With time stamp, no trace logging, but with caller info:
 
     2016/11/30 07:41:33 INFO     : [examples/example.go:22 (main.main)] Start of program
-    2016/11/30 07:41:33 INFO     : [examples/example.go:23 (main.main)] rlog is controlled via environment variables.
-    2016/11/30 07:41:33 INFO     : [examples/example.go:24 (main.main)] Try the following settings:
-    2016/11/30 07:41:33 INFO     : [examples/example.go:25 (main.main)]    export RLOG_LOG_LEVEL=DEBUG
-    2016/11/30 07:41:33 INFO     : [examples/example.go:26 (main.main)]    export RLOG_TRACE_LEVEL=5
-    2016/11/30 07:41:33 INFO     : [examples/example.go:27 (main.main)]    export RLOG_CALLER_INFO=yes
-    2016/11/30 07:41:33 INFO     : [examples/example.go:29 (main.main)] Format strings are possible 123
     2016/11/30 07:41:33 WARN     : [examples/example.go:30 (main.main)] Warning level log message
     2016/11/30 07:41:33 ERROR    : [examples/example.go:31 (main.main)] Error level log message
     2016/11/30 07:41:33 CRITICAL : [examples/example.go:32 (main.main)] Critical level log message
     2016/11/30 07:41:33 INFO     : [examples/example.go:16 (main.someRecursiveFunction)] Reached end of recursion at level 10
-    2016/11/30 07:41:33 INFO     : [examples/example.go:42 (main.main)] About to change log output. Check /tmp/rlog-output.log...
 
 Without time stamp, no trace logging, no caller info:
 
     INFO     : Start of program
-    INFO     : rlog is controlled via environment variables.
-    INFO     : Try the following settings:
-    INFO     :    export RLOG_LOG_LEVEL=DEBUG
-    INFO     :    export RLOG_TRACE_LEVEL=5
-    INFO     :    export RLOG_CALLER_INFO=yes
-    INFO     : Format strings are possible 123
     WARN     : Warning level log message
     ERROR    : Error level log message
     CRITICAL : Critical level log message
     INFO     : Reached end of recursion at level 10
-    INFO     : About to change log output. Check /tmp/rlog-output.log...
 
 
