@@ -40,7 +40,7 @@ func main() {
 	newLogFile, err := os.OpenFile("/tmp/rlog-output.log", os.O_WRONLY|os.O_CREATE, 0777)
 	if err == nil {
 		rlog.Info("About to change log output. Check /tmp/rlog-output.log...")
-		rlog.SetNewLogWriter(newLogFile)
+		rlog.SetOutput(newLogFile)
 		rlog.Info("This should go to the new logfile")
 	}
 }
