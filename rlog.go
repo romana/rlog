@@ -63,6 +63,16 @@ var levelNumbers = map[string]int{
 	"NONE":     levelNone,
 }
 
+// Some suggested trace levels.
+// You can use and define trace levels any way you want. Rlog comes with the
+// following definitions for a few basic trace levels, which you are free to
+// use if they fit your usage model.
+const (
+	TrPublic  = 1 // Message when entering a public, exported function
+	TrPrivate = 2 // Message when enterint a private, non-exported function
+	TrInside  = 3 // Message from inside of a function
+)
+
 // filterSpec holds a list of filters. These are applied to the 'caller'
 // information of a log message (calling module and file) to see if this
 // message should be logged. Different log or trace levels per file can
