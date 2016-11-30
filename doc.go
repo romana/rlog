@@ -1,9 +1,9 @@
 // rlog - A simple Golang logger with lots of features and no external dependencies
 // ================================================================================
 //
-// Rlog is a simple logging package. It is configurable 'from the outside' via
-// environment variables and has no dependencies other than the standard Golang
-// library.
+// Rlog is a simple logging package, rich in features. It is configurable 'from
+// the outside' via environment variables and has no dependencies other than
+// the standard Golang library.
 //
 // It is called "rlog", because it was originally written for the Romana
 // project (https://github.com/romana/romana).
