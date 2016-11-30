@@ -170,13 +170,13 @@ With time stamp, trace to level 2, log level WARNING, no caller info:
     $ export RLOG_TRACE_LEVEL=2
     $ go run examples/example.go
 
-    2016/11/30 15:27:24 WARN     : [examples/example.go:30 (main.main)] Warning level log message
-    2016/11/30 15:27:24 ERROR    : [examples/example.go:31 (main.main)] Error level log message
-    2016/11/30 15:27:24 CRITICAL : [examples/example.go:32 (main.main)] Critical level log message
-    2016/11/30 15:27:24 TRACE(1) : [examples/example.go:35 (main.main)] Trace messages have their own numeric levels
-    2016/11/30 15:27:24 TRACE(1) : [examples/example.go:36 (main.main)] To see them set RLOG_TRACE_LEVEL to the cut-off number
-    2016/11/30 15:27:24 TRACE(1) : [examples/example.go:12 (main.someRecursiveFunction)] We're 1 levels down now...
-    2016/11/30 15:27:24 TRACE(2) : [examples/example.go:12 (main.someRecursiveFunction)] We're 2 levels down now...
+    2016/11/30 15:30:53 WARN     : Warning level log message
+    2016/11/30 15:30:53 ERROR    : Error level log message
+    2016/11/30 15:30:53 CRITICAL : Critical level log message
+    2016/11/30 15:30:53 TRACE(1) : Trace messages have their own numeric levels
+    2016/11/30 15:30:53 TRACE(1) : To see them set RLOG_TRACE_LEVEL to the cut-off number
+    2016/11/30 15:30:53 TRACE(1) : We're 1 levels down now...
+    2016/11/30 15:30:53 TRACE(2) : We're 2 levels down now...
 
 With time stamp, log level INFO, no trace logging (switched off by unsetting
 the variable), but with caller info:
