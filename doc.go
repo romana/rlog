@@ -37,9 +37,16 @@
 // Defaults
 // --------
 //
-// By default rlog logs all messages of level INFO and up. Trace messages are
-// not logged. Messages contain time stamps and output is sent to stderr. All
-// those defaults can be changed through environment variables.
+// Rlog comes with reasonable defaults, so you can just start using it without any
+// configuration at all. By default:
+//
+// * Log level set to INFO.
+// * Trace messages are not logged.
+// * Time stamps are logged with each message.
+// * No caller information.
+// * Output is sent to stderr.
+//
+// All those defaults can easily be changed through environment variables.
 //
 //
 // Controlling rlog through environment variables
