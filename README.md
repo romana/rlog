@@ -164,9 +164,11 @@ For a more interesting example, please check out 'examples/example.go'.
 
 ## Sample output
 
-With time stamp, trace to level 2, but without caller info:
+With time stamp, trace to level 2, log level WARNING, no caller info:
 
-    2016/11/30 07:38:57 INFO     : Start of program
+    export RLOG_LOG_LEVEL=WARN
+    export RLOG_TRACE_LEVEL=2
+
     2016/11/30 07:38:57 WARN     : Warning level log message
     2016/11/30 07:38:57 ERROR    : Error level log message
     2016/11/30 07:38:57 CRITICAL : Critical level log message
@@ -174,9 +176,12 @@ With time stamp, trace to level 2, but without caller info:
     2016/11/30 07:38:57 TRACE(1) : To see them set RLOG_TRACE_LEVEL to the cut-off number
     2016/11/30 07:38:57 TRACE(1) : We're 1 levels down now...
     2016/11/30 07:38:57 TRACE(2) : We're 2 levels down now...
-    2016/11/30 07:38:57 INFO     : Reached end of recursion at level 10
 
-With time stamp, no trace logging, but with caller info:
+With time stamp, log level INFO, no trace logging (switched off by unsetting
+the variable), but with caller info:
+
+    export RLOG_CALLER_INFO=yes
+    export RLOG_TRACE_LEVEL=
 
     2016/11/30 07:41:33 INFO     : [examples/example.go:22 (main.main)] Start of program
     2016/11/30 07:41:33 WARN     : [examples/example.go:30 (main.main)] Warning level log message
@@ -185,6 +190,9 @@ With time stamp, no trace logging, but with caller info:
     2016/11/30 07:41:33 INFO     : [examples/example.go:16 (main.someRecursiveFunction)] Reached end of recursion at level 10
 
 Without time stamp, no trace logging, no caller info:
+
+    export RLOG_LOG_NOTIME=yes
+    export RLOG_CALLER_INFO=no
 
     INFO     : Start of program
     WARN     : Warning level log message
