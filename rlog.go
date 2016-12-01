@@ -259,13 +259,13 @@ func init() {
 		// runtime should inherit the same setting (the same flags).
 		settingDateTimeFlags = log.Ldate | log.Ltime
 	}
-	SetNewLogWriter(logWriter)
+	SetOutput(logWriter)
 }
 
-// SetNewLogWriter re-wires the log output to a new io.Writer. By default rlog
+// SetOutput re-wires the log output to a new io.Writer. By default rlog
 // logs to os.Stderr, but this function can be used to direct the output
 // somewhere else.
-func SetNewLogWriter(writer io.Writer) {
+func SetOutput(writer io.Writer) {
 	// Use the stored date/time flag settings
 	logWriter = log.New(writer, "", settingDateTimeFlags)
 }
@@ -382,6 +382,21 @@ func Info(a ...interface{}) {
 // Infof prints a message if RLOG_LEVEL is set to INFO or lower, with
 // formatting.
 func Infof(format string, a ...interface{}) {
+	basicLog(levelInfo, notATrace, format, "", a...)
+}
+
+// Println prints a message if RLOG_LEVEL is set to INFO or lower.
+// Println shouldn't be used except for backward compatibility
+// with standard log package, directly using Info is preferred way.
+func Println(a ...interface{}) {
+	basicLog(levelInfo, notATrace, "", "", a...)
+}
+
+// Printf prints a message if RLOG_LEVEL is set to INFO or lower, with
+// formatting.
+// Printf shouldn't be used except for backward compatibility
+// with standard log package, directly using Infof is preferred way.
+func Printf(format string, a ...interface{}) {
 	basicLog(levelInfo, notATrace, format, "", a...)
 }
 
