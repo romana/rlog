@@ -386,12 +386,16 @@ func Infof(format string, a ...interface{}) {
 }
 
 // Println prints a message if RLOG_LEVEL is set to INFO or lower.
+// Println shouldn't be used except for backward compatibility
+// with standard log package, directly using Info is preferred way.
 func Println(a ...interface{}) {
 	basicLog(levelInfo, notATrace, "", "", a...)
 }
 
 // Printf prints a message if RLOG_LEVEL is set to INFO or lower, with
 // formatting.
+// Printf shouldn't be used except for backward compatibility
+// with standard log package, directly using Infof is preferred way.
 func Printf(format string, a ...interface{}) {
 	basicLog(levelInfo, notATrace, format, "", a...)
 }
