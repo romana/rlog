@@ -27,9 +27,10 @@ It is called "rlog", because it was originally written for the Romana project
   library.
 * Logging of date and time can be disabled (useful in case of systemd, which
   adds its own time stamps in its log database).
-* By default logs to stderr. A different logfile can be configured via
-  environment variable. Also, a different io.Writer can be specified by the
-  program at any time, thus redirecting log output on the fly.
+* By default logs to stderr or stdout. A logfile can be configured via
+  environment variable. Output may happen exclusively to the logfile or in
+  addition to the output on stderr/stdout. Also, a different output stearm
+  or file can be specified from within your programs at any time.
 
 
 ## Defaults
@@ -83,15 +84,16 @@ Rlog is configured via the following environment variables:
                     environments that use systemd where access to the logs
                     via their logging tools already gives you time stamps.
                     Default: No - meaning that time/date is logged.
-* RLOG_LOG_FILE:    Provide a filename here to determine where the logfile
-                    is written. By default (if this variable is not defined)
-                    the log output is simply written to stderr.
-                    Default: Not set - meaning that output goes to stderr.
+* RLOG_LOG_FILE:    Provide a filename here to determine if the logfile
+                    should be written to a file, in addition to the output
+                    stream specified in RLOG_LOG_STREAM.
+                    Default: Not set - meaning that output is not written to
+                    a file.
 * RLOG_LOG_STREAM:  Use this to direct the log output to a different output
-                    stream, instead of stderr. This accepts two different
-                    values: "stderr" or "stdout". If a LOG file is defined
-                    via the RLOG_LOG_FILE variable then the output is sent
-                    to the file and the values of this variable is ignored.
+                    stream, instead of stderr. This accepts three values:
+                    "stderr", "stdout" or "none". If either stderr or stdout
+                    is defined here AND a logfile is specified via
+                    RLOG_LOG_FILE then the output is sent to both.
                     Default: Not set - meaning the output goes to stderr.
 
 Please note! If these environment variables have incorrect or misspelled
