@@ -87,6 +87,12 @@ Rlog is configured via the following environment variables:
                     is written. By default (if this variable is not defined)
                     the log output is simply written to stderr.
                     Default: Not set - meaning that output goes to stderr.
+* RLOG_LOG_STREAM:  Use this to direct the log output to a different output
+                    stream, instead of stderr. This accepts two different
+                    values: "stderr" or "stdout". If a LOG file is defined
+                    via the RLOG_LOG_FILE variable then the output is sent
+                    to the file and the values of this variable is ignored.
+                    Default: Not set - meaning the output goes to stderr.
 
 Please note! If these environment variables have incorrect or misspelled
 values then they will be silently ignored and a default value will be used.
