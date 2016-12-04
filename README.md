@@ -25,6 +25,7 @@ It is called "rlog", because it was originally written for the Romana project
   name).
 * Has NO external dependencies, except things contained in the standard Go
   library.
+* Fully configurable date/time format.
 * Logging of date and time can be disabled (useful in case of systemd, which
   adds its own time stamps in its log database).
 * By default logs to stderr or stdout. A logfile can be configured via
