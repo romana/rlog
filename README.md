@@ -30,7 +30,7 @@ It is called "rlog", because it was originally written for the Romana project
   adds its own time stamps in its log database).
 * By default logs to stderr or stdout. A logfile can be configured via
   environment variable. Output may happen exclusively to the logfile or in
-  addition to the output on stderr/stdout. Also, a different output stearm
+  addition to the output on stderr/stdout. Also, a different output stream
   or file can be specified from within your programs at any time.
 
 
