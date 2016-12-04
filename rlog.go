@@ -227,6 +227,7 @@ func init() {
 	traceLevelEnv := os.Getenv("RLOG_TRACE_LEVEL")
 	dontLogTimeEnv := os.Getenv("RLOG_LOG_NOTIME")
 	logFileEnv := os.Getenv("RLOG_LOG_FILE")
+	logStreamEnv := strings.ToUpper(os.Getenv("RLOG_LOG_STREAM"))
 
 	// Evaluating the caller info variable.
 	settingShowCallerInfo = isTrueBoolString(callerInfoEnv)
@@ -242,6 +243,12 @@ func init() {
 
 	// By default we log to stderr...
 	logWriter := os.Stderr
+
+	// Evaluating whether a different log stream should be used.
+	// By default (if flag is not set) we want to log date and time.
+	if logStreamEnv == "STDOUT" {
+		logWriter = os.Stdout
+	}
 
 	// ... but if requested we'll create and/or append to a logfile instead
 	if logFileEnv != "" {
