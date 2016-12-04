@@ -25,6 +25,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const notATrace = -1
@@ -212,7 +213,7 @@ func (f filter) match(filename string, level int) (bool, bool) {
 // us. Therefore, we can look them up once and store them in module level
 // global variables.
 var settingShowCallerInfo bool = false // whether we log caller info
-var settingDateTimeFlags int           // flags for date/time output
+var settingDateTimeFormat string       // flags for date/time output
 var settingLogFile string = ""         // logfile name
 
 var logWriterStream *log.Logger       // the first writer to which output is sent
@@ -227,6 +228,7 @@ func init() {
 	callerInfoEnv := os.Getenv("RLOG_CALLER_INFO")
 	traceLevelEnv := os.Getenv("RLOG_TRACE_LEVEL")
 	dontLogTimeEnv := os.Getenv("RLOG_LOG_NOTIME")
+	logTimeFormatEnv := os.Getenv("RLOG_TIME_FORMAT")
 	logFileEnv := os.Getenv("RLOG_LOG_FILE")
 	logStreamEnv := strings.ToUpper(os.Getenv("RLOG_LOG_STREAM"))
 
@@ -242,23 +244,55 @@ func init() {
 	tracefilterSpec.fromString(traceLevelEnv, true, noTraceOutput)
 	logfilterSpec.fromString(logLevelEnv, false, levelInfo)
 
-	settingDateTimeFlags = 0
+	// Evaluate the specified date/time format
+	settingDateTimeFormat = ""
 	if logTimeDate {
-		// Store the flags that enable date/time logging, since that's
-		// controlled by an environment variable. Any new loggers created at
-		// runtime should inherit the same setting (the same flags).
-		settingDateTimeFlags = log.Ldate | log.Ltime
+		// Store the format string for date/time logging. Allowed values are
+		// all the constants specified in
+		// https://golang.org/src/time/format.go.
+		var f string
+		switch logTimeFormatEnv {
+		case "ANSIC":
+			f = time.ANSIC
+		case "UnixDate":
+			f = time.UnixDate
+		case "RubyDate":
+			f = time.RubyDate
+		case "RFC822":
+			f = time.RFC822
+		case "RFC822Z":
+			f = time.RFC822Z
+		case "RFC1123":
+			f = time.RFC1123
+		case "RFC1123Z":
+			f = time.RFC1123Z
+		case "RFC3339":
+			f = time.RFC3339Nano
+		case "RFC3339Nano":
+			f = time.RFC3339Nano
+		case "Kitchen":
+			f = time.Kitchen
+		default:
+			if logTimeFormatEnv != "" {
+				f = logTimeFormatEnv
+			} else {
+				f = time.RFC3339
+			}
+		}
+		settingDateTimeFormat = f + " "
 	}
 
 	// By default we log to stderr...
 	// Evaluating whether a different log stream should be used.
 	// By default (if flag is not set) we want to log date and time.
+	// Note that in our log writers we disable date/time loggin, since we will
+	// take care of producing this ourselves.
 	if logStreamEnv == "STDOUT" {
-		logWriterStream = log.New(os.Stdout, "", settingDateTimeFlags)
+		logWriterStream = log.New(os.Stdout, "", 0)
 	} else if logStreamEnv == "NONE" {
 		logWriterStream = nil
 	} else {
-		logWriterStream = log.New(os.Stderr, "", settingDateTimeFlags)
+		logWriterStream = log.New(os.Stderr, "", 0)
 	}
 
 	// ... but if requested we'll also create and/or append to a logfile
@@ -267,7 +301,7 @@ func init() {
 	} else {
 		newLogFile, err := os.OpenFile(logFileEnv, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 		if err == nil {
-			logWriterFile = log.New(newLogFile, "", settingDateTimeFlags)
+			logWriterFile = log.New(newLogFile, "", 0)
 		}
 	}
 }
@@ -278,7 +312,7 @@ func init() {
 // variables then this will change it back to just one output.
 func SetOutput(writer io.Writer) {
 	// Use the stored date/time flag settings
-	logWriterStream = log.New(writer, "", settingDateTimeFlags)
+	logWriterStream = log.New(writer, "", 0)
 	logWriterFile = nil
 }
 
@@ -349,7 +383,9 @@ func basicLog(logLevel int, traceLevel int, format string, prefixAddition string
 		msg = fmt.Sprintln(a...)
 	}
 	levelDecoration := levelStrings[logLevel] + prefixAddition
-	logLine := fmt.Sprintf("%-9s: %s%s", levelDecoration, callerInfo, msg)
+	logLine := fmt.Sprintf("%s%-9s: %s%s",
+		time.Now().Format(settingDateTimeFormat), levelDecoration,
+		callerInfo, msg)
 	if logWriterStream != nil {
 		logWriterStream.Printf(logLine)
 	}

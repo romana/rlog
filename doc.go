@@ -27,6 +27,7 @@
 //   name).
 // * Has NO external dependencies, except things contained in the standard Go
 //   library.
+// * Fully configurable date/time format.
 // * Logging of date and time can be disabled (useful in case of systemd, which
 //   adds its own time stamps in its log database).
 // * By default logs to stderr or stdout. A logfile can be configured via
@@ -82,6 +83,13 @@
 //                     number as well as function name from which the log
 //                     message was called.
 //                     Default: No - meaning that no caller info is logged.
+// * RLOG_TIME_FORMAT: Use this variable to customize the date/time format. The
+//                     format is specified either by the well known formats
+//                     listed in https://golang.org/src/time/format.go (for
+//                     example "UnixDate" or "RFC3339") or as an example
+//                     date/time output, which is described here:
+//                     https://golang.org/pkg/time/#Time.Format
+//                     Default: Not set - formatted according to RFC3339.
 // * RLOG_LOG_NOTIME:  If this variable is set to "1", "yes" or something else
 //                     that evaluates to 'true' then no date/time stamp is
 //                     logged with each log message. This is useful in
