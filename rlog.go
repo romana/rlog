@@ -215,7 +215,8 @@ var settingShowCallerInfo bool = false // whether we log caller info
 var settingDateTimeFlags int           // flags for date/time output
 var settingLogFile string = ""         // logfile name
 
-var logWriter *log.Logger             // the writer to which output is sent
+var logWriterStream *log.Logger       // the first writer to which output is sent
+var logWriterFile *log.Logger         // the second writer to which output is sent
 var logfilterSpec = new(filterSpec)   // filters for log messages
 var tracefilterSpec = new(filterSpec) // filters for trace messages
 
@@ -241,24 +242,6 @@ func init() {
 	tracefilterSpec.fromString(traceLevelEnv, true, noTraceOutput)
 	logfilterSpec.fromString(logLevelEnv, false, levelInfo)
 
-	// By default we log to stderr...
-	logWriter := os.Stderr
-
-	// Evaluating whether a different log stream should be used.
-	// By default (if flag is not set) we want to log date and time.
-	if logStreamEnv == "STDOUT" {
-		logWriter = os.Stdout
-	}
-
-	// ... but if requested we'll create and/or append to a logfile instead
-	if logFileEnv != "" {
-		newLogFile, err := os.OpenFile(logFileEnv, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-		if err == nil {
-			logWriter = newLogFile
-		}
-	}
-
-	// Initialize the logger we will use throughout
 	settingDateTimeFlags = 0
 	if logTimeDate {
 		// Store the flags that enable date/time logging, since that's
@@ -266,15 +249,37 @@ func init() {
 		// runtime should inherit the same setting (the same flags).
 		settingDateTimeFlags = log.Ldate | log.Ltime
 	}
-	SetOutput(logWriter)
+
+	// By default we log to stderr...
+	// Evaluating whether a different log stream should be used.
+	// By default (if flag is not set) we want to log date and time.
+	if logStreamEnv == "STDOUT" {
+		logWriterStream = log.New(os.Stdout, "", settingDateTimeFlags)
+	} else if logStreamEnv == "NONE" {
+		logWriterStream = nil
+	} else {
+		logWriterStream = log.New(os.Stderr, "", settingDateTimeFlags)
+	}
+
+	// ... but if requested we'll also create and/or append to a logfile
+	if logFileEnv == "" {
+		logWriterFile = nil
+	} else {
+		newLogFile, err := os.OpenFile(logFileEnv, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		if err == nil {
+			logWriterFile = log.New(newLogFile, "", settingDateTimeFlags)
+		}
+	}
 }
 
 // SetOutput re-wires the log output to a new io.Writer. By default rlog
 // logs to os.Stderr, but this function can be used to direct the output
-// somewhere else.
+// somewhere else. If output to two destinations was specified via environment
+// variables then this will change it back to just one output.
 func SetOutput(writer io.Writer) {
 	// Use the stored date/time flag settings
-	logWriter = log.New(writer, "", settingDateTimeFlags)
+	logWriterStream = log.New(writer, "", settingDateTimeFlags)
+	logWriterFile = nil
 }
 
 // isTrueBoolString tests a string to see if it represents a 'true' value.
@@ -344,7 +349,13 @@ func basicLog(logLevel int, traceLevel int, format string, prefixAddition string
 		msg = fmt.Sprintln(a...)
 	}
 	levelDecoration := levelStrings[logLevel] + prefixAddition
-	logWriter.Printf("%-9s: %s%s", levelDecoration, callerInfo, msg)
+	logLine := fmt.Sprintf("%-9s: %s%s", levelDecoration, callerInfo, msg)
+	if logWriterStream != nil {
+		logWriterStream.Printf(logLine)
+	}
+	if logWriterFile != nil {
+		logWriterFile.Printf(logLine)
+	}
 }
 
 // Trace is for low level tracing of activities. It takes an additional 'level'
