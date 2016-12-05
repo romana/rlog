@@ -271,3 +271,10 @@ With custom time stamp:
     2016/12/16 12:09:03 INFO     : Reached end of recursion at level 10
     2016/12/16 12:09:03 INFO     : About to change log output. Check /tmp/rlog-output.log...
 
+
+## Links
+
+* Goreportcard.com: https://goreportcard.com/report/github.com/romana/rlog
+* Godoc.com: https://godoc.org/github.com/romana/rlog
+
+
