@@ -28,6 +28,7 @@ import (
 	"time"
 )
 
+// A few constants, which are used more like flags
 const notATrace = -1
 const noTraceOutput = -1
 
@@ -72,6 +73,37 @@ var levelNumbers = map[string]int{
 type filterSpec struct {
 	filters []filter
 }
+
+// filter holds filename and level to match logs against log messages.
+type filter struct {
+	Pattern string
+	Level   int
+}
+
+// rlogConfig captures the entire configuration of rlog, as supplied by a user,
+// for example via environment variables.
+type rlogConfig struct {
+	logLevel       string // What log level. String, since filters are allowed
+	traceLevel     string // What trace level. String, since filters are allowed
+	logTimeFormat  string // The time format spec for date/time stamps in output
+	logFile        string // Name of logfile
+	logStream      string // Name of logstream: stdout, stderr or NONE
+	logTimeDate    bool   // Flag to determine if date/time is logged at all
+	showCallerInfo bool   // Flag to determine if caller info is logged
+}
+
+// The configuration items in rlogConfig are what is supplied by the user (for
+// example in environment variables). We interpret this and produce
+// pre-processed configuration values, which are stored in those variables
+// below.
+var settingShowCallerInfo bool   // whether we log caller info
+var settingDateTimeFormat string // flags for date/time output
+var settingLogFile string        // logfile name
+
+var logWriterStream *log.Logger // the first writer to which output is sent
+var logWriterFile *log.Logger   // the second writer to which output is sent
+var logFilterSpec *filterSpec   // filters for log messages
+var traceFilterSpec *filterSpec // filters for trace messages
 
 // fromString initializes filterSpec from string.
 //
@@ -185,12 +217,6 @@ func (spec *filterSpec) matchfilters(filename string, level int) bool {
 	return false
 }
 
-// filter holds filename and level to match logs against log messages.
-type filter struct {
-	Pattern string
-	Level   int
-}
-
 // match checks if given filename and level are matched by
 // this filter. Returns two bools: One to indicate whether a filename match was
 // made, and the second to indicate whether the message should be logged
@@ -209,54 +235,49 @@ func (f filter) match(filename string, level int) (bool, bool) {
 	return false, false
 }
 
-// Rlog is controlled via environment variables. Those things won't change on
-// us. Therefore, we can look them up once and store them in module level
-// global variables.
-var settingShowCallerInfo bool = false // whether we log caller info
-var settingDateTimeFormat string       // flags for date/time output
-var settingLogFile string = ""         // logfile name
-
-var logWriterStream *log.Logger       // the first writer to which output is sent
-var logWriterFile *log.Logger         // the second writer to which output is sent
-var logfilterSpec = new(filterSpec)   // filters for log messages
-var tracefilterSpec = new(filterSpec) // filters for trace messages
-
 // init extracts settings for our logger from environment variables when the
-// module is imported.
+// module is imported and calls actual initialization function with that
+// configuration.
 func init() {
-	logLevelEnv := os.Getenv("RLOG_LOG_LEVEL")
-	callerInfoEnv := os.Getenv("RLOG_CALLER_INFO")
-	traceLevelEnv := os.Getenv("RLOG_TRACE_LEVEL")
-	dontLogTimeEnv := os.Getenv("RLOG_LOG_NOTIME")
-	logTimeFormatEnv := os.Getenv("RLOG_TIME_FORMAT")
-	logFileEnv := os.Getenv("RLOG_LOG_FILE")
-	logStreamEnv := strings.ToUpper(os.Getenv("RLOG_LOG_STREAM"))
+	var config rlogConfig = rlogConfig{
+		logLevel:       os.Getenv("RLOG_LOG_LEVEL"),
+		traceLevel:     os.Getenv("RLOG_TRACE_LEVEL"),
+		logTimeFormat:  os.Getenv("RLOG_TIME_FORMAT"),
+		logFile:        os.Getenv("RLOG_LOG_FILE"),
+		logStream:      strings.ToUpper(os.Getenv("RLOG_LOG_STREAM")),
+		logTimeDate:    !isTrueBoolString(os.Getenv("RLOG_LOG_NOTIME")),
+		showCallerInfo: isTrueBoolString(os.Getenv("RLOG_CALLER_INFO")),
+	}
+	Initialize(config)
+}
 
-	// Evaluating the caller info variable.
-	settingShowCallerInfo = isTrueBoolString(callerInfoEnv)
-
-	// Evaluating whether date/time should be logged with each message
-	// By default (if flag is not set) we want to log date and time.
-	logTimeDate := !isTrueBoolString(dontLogTimeEnv)
+// Initialize translates config items into initialized data structures,
+// config values and freshly created or opened config files, if necessary.
+// This function prepares everything for the fast and efficient processing of
+// the actual log functions.
+func Initialize(config rlogConfig) {
+	settingShowCallerInfo = config.showCallerInfo
 
 	// Initialize filters for trace (by default no trace output) and log levels
 	// (by default INFO level).
-	tracefilterSpec.fromString(traceLevelEnv, true, noTraceOutput)
-	logfilterSpec.fromString(logLevelEnv, false, levelInfo)
+	logFilterSpec = new(filterSpec)
+	traceFilterSpec = new(filterSpec)
+	traceFilterSpec.fromString(config.traceLevel, true, noTraceOutput)
+	logFilterSpec.fromString(config.logLevel, false, levelInfo)
 
 	// Evaluate the specified date/time format
 	settingDateTimeFormat = ""
-	if logTimeDate {
+	if config.logTimeDate {
 		// Store the format string for date/time logging. Allowed values are
 		// all the constants specified in
 		// https://golang.org/src/time/format.go.
 		var f string
-		switch logTimeFormatEnv {
+		switch strings.ToUpper(config.logTimeFormat) {
 		case "ANSIC":
 			f = time.ANSIC
-		case "UnixDate":
+		case "UNIXDATE":
 			f = time.UnixDate
-		case "RubyDate":
+		case "RUBYDATE":
 			f = time.RubyDate
 		case "RFC822":
 			f = time.RFC822
@@ -267,14 +288,14 @@ func init() {
 		case "RFC1123Z":
 			f = time.RFC1123Z
 		case "RFC3339":
+			f = time.RFC3339
+		case "RFC3339NANO":
 			f = time.RFC3339Nano
-		case "RFC3339Nano":
-			f = time.RFC3339Nano
-		case "Kitchen":
+		case "KITCHEN":
 			f = time.Kitchen
 		default:
-			if logTimeFormatEnv != "" {
-				f = logTimeFormatEnv
+			if config.logTimeFormat != "" {
+				f = config.logTimeFormat
 			} else {
 				f = time.RFC3339
 			}
@@ -287,19 +308,20 @@ func init() {
 	// By default (if flag is not set) we want to log date and time.
 	// Note that in our log writers we disable date/time loggin, since we will
 	// take care of producing this ourselves.
-	if logStreamEnv == "STDOUT" {
+	if config.logStream == "STDOUT" {
 		logWriterStream = log.New(os.Stdout, "", 0)
-	} else if logStreamEnv == "NONE" {
+	} else if config.logStream == "NONE" {
 		logWriterStream = nil
 	} else {
 		logWriterStream = log.New(os.Stderr, "", 0)
 	}
 
 	// ... but if requested we'll also create and/or append to a logfile
-	if logFileEnv == "" {
+	if config.logFile == "" {
 		logWriterFile = nil
 	} else {
-		newLogFile, err := os.OpenFile(logFileEnv, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		newLogFile, err := os.OpenFile(config.logFile,
+			os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 		if err == nil {
 			logWriterFile = log.New(newLogFile, "", 0)
 		}
@@ -357,11 +379,11 @@ func basicLog(logLevel int, traceLevel int, format string, prefixAddition string
 	// Perform tests to see if we should log this message.
 	var allowLog bool
 	if traceLevel == notATrace {
-		if logfilterSpec.matchfilters(moduleAndFileName, logLevel) {
+		if logFilterSpec.matchfilters(moduleAndFileName, logLevel) {
 			allowLog = true
 		}
 	} else {
-		if tracefilterSpec.matchfilters(moduleAndFileName, traceLevel) {
+		if traceFilterSpec.matchfilters(moduleAndFileName, traceLevel) {
 			allowLog = true
 		}
 	}
@@ -402,7 +424,7 @@ func basicLog(logLevel int, traceLevel int, format string, prefixAddition string
 func Trace(traceLevel int, a ...interface{}) {
 	// There are possibly many trace messages. If trace logging isn't enabled
 	// then we want to get out of here as quickly as possible.
-	if len(tracefilterSpec.filters) > 0 {
+	if len(traceFilterSpec.filters) > 0 {
 		prefixAddition := fmt.Sprintf("(%d)", traceLevel)
 		basicLog(levelTrace, traceLevel, "", prefixAddition, a...)
 	}
@@ -412,7 +434,7 @@ func Trace(traceLevel int, a ...interface{}) {
 func Tracef(traceLevel int, format string, a ...interface{}) {
 	// There are possibly many trace messages. If trace logging isn't enabled
 	// then we want to get out of here as quickly as possible.
-	if len(tracefilterSpec.filters) > 0 {
+	if len(traceFilterSpec.filters) > 0 {
 		prefixAddition := fmt.Sprintf("(%d)", traceLevel)
 		basicLog(levelTrace, traceLevel, format, prefixAddition, a...)
 	}
