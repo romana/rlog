@@ -272,12 +272,12 @@ func Initialize(config rlogConfig) {
 		// all the constants specified in
 		// https://golang.org/src/time/format.go.
 		var f string
-		switch config.logTimeFormat {
+		switch strings.ToUpper(config.logTimeFormat) {
 		case "ANSIC":
 			f = time.ANSIC
-		case "UnixDate":
+		case "UNIXDATE":
 			f = time.UnixDate
-		case "RubyDate":
+		case "RUBYDATE":
 			f = time.RubyDate
 		case "RFC822":
 			f = time.RFC822
@@ -289,9 +289,9 @@ func Initialize(config rlogConfig) {
 			f = time.RFC1123Z
 		case "RFC3339":
 			f = time.RFC3339
-		case "RFC3339Nano":
+		case "RFC3339NANO":
 			f = time.RFC3339Nano
-		case "Kitchen":
+		case "KITCHEN":
 			f = time.Kitchen
 		default:
 			if config.logTimeFormat != "" {
