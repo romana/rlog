@@ -276,5 +276,7 @@ With custom time stamp:
 
 * Goreportcard.com: https://goreportcard.com/report/github.com/romana/rlog
 * Godoc.com: https://godoc.org/github.com/romana/rlog
+* Gocover.io: http://gocover.io/github.com/romana/rlog
+
 
 
