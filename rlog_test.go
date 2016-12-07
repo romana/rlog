@@ -27,9 +27,9 @@ import (
 
 var logfile string
 
-// These two flags are used, so that during development of the tests we can
-// quickly change behaviour to manually try or check things. The settings here
-// are the correct behaviour for normal test runs.
+// These two flags are used to quickly change behaviour of our tests, so that
+// we can manually check and test things during development of those tests.
+// The settings here reflect the correct behaviour for normal test runs.
 var removeLogfile bool = true
 var fixedLogfileName bool = false
 
@@ -41,10 +41,12 @@ func setup() rlogConfig {
 	} else {
 		logfile = fmt.Sprintf("/tmp/rlog-test-%d.log", time.Now().UnixNano())
 	}
+
 	// If there's a logfile with that name already, remove it so that our tests
 	// always start from scratch.
 	os.Remove(logfile)
 
+	// Provide a default config, which can be used or modified by the tests
 	return rlogConfig{
 		logLevel:       "",
 		traceLevel:     "",
@@ -117,6 +119,9 @@ func fileMatch(t *testing.T, checkLines []string, timeLayout string) {
 	}
 }
 
+// ---------- Tests -----------
+
+// TestLogLevels performs some basic tests for each known log level.
 func TestLogLevels(t *testing.T) {
 	conf := setup()
 	defer cleanup()
@@ -140,6 +145,8 @@ func TestLogLevels(t *testing.T) {
 	fileMatch(t, checkLines, "")
 }
 
+// TestLogLevelsLimited checks that we can limit the output of log and trace
+// messages that don't meed the minimum configured logging levels.
 func TestLogLevelsLimited(t *testing.T) {
 	conf := setup()
 	defer cleanup()
@@ -168,6 +175,8 @@ func TestLogLevelsLimited(t *testing.T) {
 	fileMatch(t, checkLines, "")
 }
 
+// TestLogFormatted checks whether the *f functions for formatted output work
+// as expected.
 func TestLogFormatted(t *testing.T) {
 	conf := setup()
 	defer cleanup()
