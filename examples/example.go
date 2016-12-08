@@ -1,5 +1,6 @@
 package main
 
+//import "time"
 import "os"
 import "github.com/romana/rlog"
 
@@ -37,10 +38,32 @@ func main() {
 	someRecursiveFunction(1)
 
 	// Example of redirecting log output to a new file at runtime
-	newLogFile, err := os.OpenFile("/tmp/rlog-output.log", os.O_WRONLY|os.O_CREATE, 0777)
+	newLogFile, err := os.OpenFile("/tmp/rlog-output.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0777)
 	if err == nil {
 		rlog.Info("About to change log output. Check /tmp/rlog-output.log...")
 		rlog.SetOutput(newLogFile)
 		rlog.Info("This should go to the new logfile")
 	}
+
+	// Now redirecting it back to stderr. Any additional file logging will be
+	// closed with this call.
+	rlog.SetOutput(os.Stderr)
+
+	rlog.Info("Back to stderr")
+
+	// To test out changing the log configurtion of a running process, set the
+	// RLOG_CONF_FILE environment variable to an absolute path for a
+	// configuration file that you can create and edit. Also, you might want to
+	// set RLOG_CONF_CHECK_INTERVAL to a smaller number, so you don't have to
+	// wait 15 seconds every time you change a setting.
+	// Then uncomment the loop below (and the 'time' import at the top) and run
+	// the example program.
+
+	/*
+		for {
+			time.Sleep(time.Second * 1)
+			rlog.Debug("A debug log message")
+			rlog.Info("An info log message")
+		}
+	*/
 }

@@ -27,32 +27,36 @@ import (
 
 var logfile string
 
-// These two flags are used, so that during development of the tests we can
-// quickly change behaviour to manually try or check things. The settings here
-// are the correct behaviour for normal test runs.
+// These two flags are used to quickly change behaviour of our tests, so that
+// we can manually check and test things during development of those tests.
+// The settings here reflect the correct behaviour for normal test runs.
 var removeLogfile bool = true
 var fixedLogfileName bool = false
 
 // setup is called at the start of each test and prepares a new log file. It
-// also returns a new configuration, which can be used by this test.
+// also returns a new configuration, as it may have been supplied by the user
+// in environment variables, which can be used by this test.
 func setup() rlogConfig {
 	if fixedLogfileName {
 		logfile = "/tmp/rlog-test.log"
 	} else {
 		logfile = fmt.Sprintf("/tmp/rlog-test-%d.log", time.Now().UnixNano())
 	}
+
 	// If there's a logfile with that name already, remove it so that our tests
 	// always start from scratch.
 	os.Remove(logfile)
 
+	// Provide a default config, which can be used or modified by the tests
 	return rlogConfig{
 		logLevel:       "",
 		traceLevel:     "",
 		logTimeFormat:  "",
+		confFile:       "",
 		logFile:        logfile,
 		logStream:      "NONE",
-		logTimeDate:    false,
-		showCallerInfo: false,
+		logNoTime:      "true",
+		showCallerInfo: "false",
 	}
 }
 
@@ -75,7 +79,8 @@ func fileMatch(t *testing.T, checkLines []string, timeLayout string) {
 	// actual timezone names can have more characters than the TZ specified in
 	// the layout. So we create the current time in the specified layout, which
 	// should be very similar to the timestamps in the log lines.
-	timeStampLen := len(time.Now().Format(timeLayout))
+	currentSampleTimestamp := time.Now().Format(timeLayout)
+	timeStampLen := len(currentSampleTimestamp)
 
 	// Scan over the logfile, line by line and compare to the lines provided in
 	// checkLines.
@@ -117,12 +122,15 @@ func fileMatch(t *testing.T, checkLines []string, timeLayout string) {
 	}
 }
 
+// ---------- Tests -----------
+
+// TestLogLevels performs some basic tests for each known log level.
 func TestLogLevels(t *testing.T) {
 	conf := setup()
 	defer cleanup()
 
 	conf.logLevel = "DEBUG"
-	Initialize(conf)
+	initialize(conf, true) // re-initialize the environment variable config
 
 	Debug("Test Debug")
 	Info("Test Info")
@@ -140,13 +148,15 @@ func TestLogLevels(t *testing.T) {
 	fileMatch(t, checkLines, "")
 }
 
+// TestLogLevelsLimited checks that we can limit the output of log and trace
+// messages that don't meed the minimum configured logging levels.
 func TestLogLevelsLimited(t *testing.T) {
 	conf := setup()
 	defer cleanup()
 
 	conf.logLevel = "WARN"
 	conf.traceLevel = "3"
-	Initialize(conf)
+	initialize(conf, true)
 
 	Debug("Test Debug")
 	Info("Test Info")
@@ -168,13 +178,15 @@ func TestLogLevelsLimited(t *testing.T) {
 	fileMatch(t, checkLines, "")
 }
 
+// TestLogFormatted checks whether the *f functions for formatted output work
+// as expected.
 func TestLogFormatted(t *testing.T) {
 	conf := setup()
 	defer cleanup()
 
 	conf.logLevel = "DEBUG"
 	conf.traceLevel = "1"
-	Initialize(conf)
+	initialize(conf, true)
 
 	Debugf("Test Debug %d", 123)
 	Infof("Test Info %d", 123)
@@ -198,7 +210,7 @@ func TestLogFormatted(t *testing.T) {
 // we indeed get a properly formatted timestamp output.
 func TestLogTimestamp(t *testing.T) {
 	conf := setup()
-	conf.logTimeDate = true
+	conf.logNoTime = "false"
 	defer cleanup()
 
 	checkLines := []string{
@@ -210,17 +222,19 @@ func TestLogTimestamp(t *testing.T) {
 	// known time stamps is off, to show that those names can be specified in a
 	// case insensitive manner.
 	checkTimeStamps := map[string]string{
-		"ansIC":       time.ANSIC,
-		"UNIXDATE":    time.UnixDate,
-		"rubydate":    time.RubyDate,
-		"rfc822":      time.RFC822,
-		"rfc822z":     time.RFC822Z,
-		"rfc1123":     time.RFC1123,
-		"rfc1123z":    time.RFC1123Z,
-		"RFC3339":     time.RFC3339,
-		"RFC3339Nano": time.RFC3339Nano,
-		"Kitchen":     time.Kitchen,
-		"":            time.RFC3339, // If nothing specified, default is RFC3339
+		"ansIC":    time.ANSIC,
+		"UNIXDATE": time.UnixDate,
+		"rubydate": time.RubyDate,
+		"rfc822":   time.RFC822,
+		"rfc822z":  time.RFC822Z,
+		"rfc1123":  time.RFC1123,
+		"rfc1123z": time.RFC1123Z,
+		"RFC3339":  time.RFC3339,
+		//"RFC3339Nano": time.RFC3339Nano,  // Not included in the tests, since
+		// output length can vary depending on whether there are trailing zeros.
+		// Not worth the trouble.
+		"Kitchen": time.Kitchen,
+		"":        time.RFC3339, // If nothing specified, default is RFC3339
 		"2006/01/02 15:04:05": "2006/01/02 15:04:05", // custom format
 	}
 
@@ -229,7 +243,7 @@ func TestLogTimestamp(t *testing.T) {
 
 		// Specify a time layout...
 		conf.logTimeFormat = tsUserSpecified
-		Initialize(conf)
+		initialize(conf, true)
 
 		Info("Test Info")
 		// We can specify a time layout to fileMatch, which then performs the extra
@@ -246,8 +260,8 @@ func TestLogCallerInfo(t *testing.T) {
 	conf := setup()
 	defer cleanup()
 
-	conf.showCallerInfo = true
-	Initialize(conf)
+	conf.showCallerInfo = "true"
+	initialize(conf, true)
 
 	Info("Test Info")
 	pc, fullFilePath, line, _ := runtime.Caller(0)
@@ -281,7 +295,7 @@ func TestLogLevelsFiltered(t *testing.T) {
 
 	conf.logLevel = "rlog_test.go=WARN"
 	conf.traceLevel = "foobar.go=2" // should not see any of those
-	Initialize(conf)
+	initialize(conf, true)
 
 	Debug("Test Debug")
 	Info("Test Info")
@@ -298,4 +312,71 @@ func TestLogLevelsFiltered(t *testing.T) {
 		"CRITICAL : Test Critical",
 	}
 	fileMatch(t, checkLines, "")
+}
+
+// writeLogfile is a small utility function for the creation of unique config
+// files for these tests.
+func writeLogfile(lines []string) string {
+	confFile := fmt.Sprintf("/tmp/rlog-test-%d.conf", time.Now().UnixNano())
+	cf, _ := os.Create(confFile)
+	defer cf.Close()
+	for _, l := range lines {
+		cf.WriteString(l + "\n")
+	}
+	return confFile
+}
+
+// checkLogFilter simplifies the checking of correct log levels in the tests.
+func checkLogFilter(t *testing.T, shouldPattern string, shouldLevel int) {
+	f := logFilterSpec.filters[0]
+	if f.Pattern != shouldPattern || f.Level != shouldLevel {
+		t.Fatalf("Incorrect default filter '%s' / %d. Should be: '%s' / %d",
+			f.Pattern, f.Level, shouldPattern, shouldLevel)
+	}
+}
+
+// TestConfFile tests the reading of an rlog config file and the proper
+// processing of settings from a config file.
+func TestConfFile(t *testing.T) {
+	conf := setup()
+	defer cleanup()
+
+	// Set the default configuration and check how this is reflected in the
+	// internal settings variables.
+	initialize(conf, true)
+
+	checkLogFilter(t, "", levelInfo)
+	t.Log("trace filter = ", traceFilterSpec)
+	if len(traceFilterSpec.filters) > 0 {
+		t.Fatal("Incorrect trace filters: ", traceFilterSpec.filters)
+	}
+
+	conf.confFile = writeLogfile([]string{"RLOG_LOG_LEVEL=DEBUG"})
+	defer os.Remove(conf.confFile)
+	initialize(conf, true)
+	// No explicit log level was set in the initial, default config. Therefore,
+	// the conf file value should have overwritten that.
+	checkLogFilter(t, "", levelDebug)
+
+	// Now we test with an initial config, which contains an explicit value for
+	// the log level. The INFO value should remain.
+	conf.logLevel = "INFO"
+	initialize(conf, true)
+	checkLogFilter(t, "", levelInfo)
+
+	// Now we test the 'override' option (start the config in the conf file
+	// with a '!'). With that, the conf file takes precedence.
+	conf.confFile = writeLogfile([]string{"!RLOG_LOG_LEVEL=DEBUG"})
+	defer os.Remove(conf.confFile)
+	initialize(conf, true)
+	checkLogFilter(t, "", levelDebug)
+
+	// Test that a full filter spec can be read from logfile and also test that
+	// space trimming worked correctly.
+	conf.confFile = writeLogfile([]string{
+		"  !RLOG_LOG_LEVEL = foo.go=DEBUG   ",
+	})
+	defer os.Remove(conf.confFile)
+	initialize(conf, true)
+	checkLogFilter(t, "foo.go", levelDebug)
 }

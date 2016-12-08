@@ -1,17 +1,20 @@
 # rlog - A simple Golang logger with lots of features and no external dependencies
 
 Rlog is a simple logging package, rich in features. It is configurable 'from
-the outside' via environment variables and has no dependencies other than the
-standard Golang library.
+the outside' via environment variables and/or config file and has no
+dependencies other than the standard Golang library.
 
-It is called "rlog", because it was originally written for the Romana project
-(https://github.com/romana/romana).
+It is called "rlog", because it was originally written for the
+[Romana project](https://github.com/romana/romana). 
 
 
 ## Features
 
-* Is configured through environment variables: No need to call a special
-  init function of some kind to initialize and configure the logger.
+* Logging configuration of a running process can be modified, without needing
+  to restart it. This allows for on-demand finer level logging, if a process
+  starts to experience issues, for example.
+* Is configured through environment variables or config file: No need to call a
+  special init function of some kind to initialize and configure the logger.
 * Offers familiar and easy to use log functions for the usual levels: Debug,
   Info, Warn, Error and Critical.
 * Offers an additional multi level logging facility with arbitrary depth,
@@ -45,12 +48,14 @@ configuration at all. By default:
 * No caller information.
 * Output is sent to stderr.
   
-All those defaults can easily be changed through environment variables.
+All those defaults can easily be changed through environment variables or the
+config file.
 
 
-## Controlling rlog through environment variables
+## Controlling rlog through environment or config file variables
 
-Rlog is configured via the following environment variables:
+Rlog is configured via the following settings, which may either be defined as
+environment variables or via a config file.
 
 * RLOG_LOG_LEVEL:   Set to "DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"
                     or "NONE".
@@ -104,14 +109,112 @@ Rlog is configured via the following environment variables:
                     RLOG_LOG_FILE then the output is sent to both.
                     Default: Not set - meaning the output goes to stderr.
 
+There are two more settings, related to the configuration file, which can only
+be set via environment variables.
+
+* RLOG_CONF_FILE:   If this variable is set then rlog looks for the config
+                    file at the specified location, which needs to be the
+                    absolute path of the file. If this variable is not defined,
+                    then rlog will look for the config file in
+                    "/etc/rlog/your-executable-name.conf". Therefore,
+                    by default every executable has its own config file.
+                    By setting this variable, you could force multiple
+                    processes to share the same config file.
+* RLOG_CONF_CHECK_INTERVAL: Number of seconds between checking whether the
+                    config file has changed. By default, this is set to 15
+                    seconds. This means that within 15 seconds a changed
+                    logging configuration in the config file will take effect.
+                    Note that this check is only performed when a log message
+                    is actually written. If the program does nothing or doesn't
+                    log messages, the config file won't be read. If there is no
+                    config file or it has been removed then the configuration
+                    from the environment variables is used. Set this value to 0
+                    in order to switch off the regular config file checking:
+                    The config file will then only be read once at the start.
+
 Please note! If these environment variables have incorrect or misspelled
 values then they will be silently ignored and a default value will be used.
+
+
+## Using the config file
+
+A config file for rlog is entirely optional, since rlog works just fine even
+without it. However, it does provide you with a very neat feature: You can
+change the logging configuration of a running program without having to restart
+it!
+
+When rlog is imported it starts out with the defaults described above. It then
+takes an initial configuration from environment variables, which may override
+the default values. Next, it looks for the rlog config file. If it cannot find
+the config file it will quietly continue without error. If the config file is
+found then the configuration from environment variables is combined with the
+configuraton from the config file. More about how this combination works, and
+what takes precedence, in a moment.
+
+### Updating the logging config of a running program
+
+Every time you log a message and at least RLOG_CONF_CHECK_INTERVAL seconds have
+elapsed since the last reading of the config file, rlog will automatically
+re-read the content of the conf file and re-apply the configuration it finds
+there over the initial configuration, which was based on the environment
+variables.
+
+You can always just delete the config file to go back to the configuration
+based on environment variables.
+
+### Logfile location
+
+The absolute path for the config file can be set via the RLOG_CONF_FILE
+environment variable. Absent that, rlog looks for a config file in
+"/etc/rlog/your-executable-name.conf". This means that you can easily provide
+different logging configurations for each of your processes.
+
+### Logfile format
+
+The format of the logfile is simple. Each setting is referred to by the same
+name as the environment variable. So, your config file may look like this:
+
+    RLOG_LOG_LEVEL  = WARN
+    RLOG_LOG_STREAM = stdout
+    RLOG_TIME_FORMAT= UnixDate
+    RLOG_LOG_FILE   = /var/log/myapp.log
+
+A few notes about config file formatting:
+
+* Empty lines are ignored.
+* Leading and trailing spaces in lines are removed.
+* Everything after the first '=' will be taken as the value of the setting.
+* Leading and trailing spaces in values are removed.
+* Spaces or further '=' characters within values are taken as they are.
+
+### Combining configuration from environment variables and config file
+
+Generally, environment variables take precedence. Assume you have set a log
+level of INFO via the RLOG_LOG_LEVEL variable. This value will be used,
+even if you specified DEBUG in the config file, since an explicitly set
+environment variable takes precedence.
+
+There are only two cases when a config file value takes precedence:
+
+1. If you do not have an explicit value set in the environment variable. For
+   example, if you do not have the RLOG_LOG_LEVEL environment variable defined
+   at all, or if it is set to the empty string.
+2. If you apply a '!' as prefix in the config file. That marks this value as
+   higher priority than the environment variable. Consider the following config
+   file as example. Here RLOG_LOG_LEVEL and RLOG_TIME_FORMAT will take
+   precedence over whatever was defined in the environment variables.
+
+    !RLOG_LOG_LEVEL=WARN
+    RLOG_LOG_STREAM=stdout
+    !RLOG_TIME_FORMAT=UnixDate
+    RLOG_LOG_FILE=/var/log/myapp.log
 
 
 ## Per file level log and trace levels
 
 In most cases you might want to set just a single log or trace level, which is
-then applied to all log messages in your program:
+then applied to all log messages in your program. With environment variables,
+you would set it like this:
 
     export RLOG_LOG_LEVEL=INFO
     export RLOG_TRACE_LEVEL=3
@@ -277,6 +380,5 @@ With custom time stamp:
 * Goreportcard.com: https://goreportcard.com/report/github.com/romana/rlog
 * Godoc.com: https://godoc.org/github.com/romana/rlog
 * Gocover.io: http://gocover.io/github.com/romana/rlog
-
 
 
