@@ -126,7 +126,7 @@ var (
 	currentLogFile      *os.File    // the logfile currently in use
 	currentLogFileName  string      // name of current log file
 
-	initMutex sync.Mutex // used to protect the init section
+	initMutex *sync.RWMutex = &sync.RWMutex{} // used to protect the init section
 )
 
 // fromString initializes filterSpec from string.
@@ -407,10 +407,13 @@ func initialize(config rlogConfig, reInitEnvVars bool) {
 
 	// initialize filters for trace (by default no trace output) and log levels
 	// (by default INFO level).
-	logFilterSpec = new(filterSpec)
-	traceFilterSpec = new(filterSpec)
-	traceFilterSpec.fromString(config.traceLevel, true, noTraceOutput)
-	logFilterSpec.fromString(config.logLevel, false, levelInfo)
+	newLogFilterSpec := new(filterSpec)
+	newTraceFilterSpec := new(filterSpec)
+	newLogFilterSpec.fromString(config.logLevel, false, levelInfo)
+	newTraceFilterSpec.fromString(config.traceLevel, true, noTraceOutput)
+
+	logFilterSpec = newLogFilterSpec
+	traceFilterSpec = newTraceFilterSpec
 
 	// Evaluate the specified date/time format
 	settingDateTimeFormat = ""
@@ -537,6 +540,9 @@ func rlogIssue(prefix string, a ...interface{}) {
 // accordingly and assembles the entire line. It then uses the standard log
 // package to finally output the message.
 func basicLog(logLevel int, traceLevel int, format string, prefixAddition string, a ...interface{}) {
+	initMutex.RLock()
+	defer initMutex.RUnlock()
+
 	// Check if it's time to load updated information from the config file
 	now := time.Now()
 	if settingCheckInterval > 0 && now.Sub(lastConfigFileCheck) > settingCheckInterval {
