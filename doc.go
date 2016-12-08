@@ -5,8 +5,8 @@
 // dependencies other than the standard Golang library.
 //
 //
-// It is called "rlog", because it was originally written for the Romana project:
-// https://github.com/romana/romana (https://github.com/romana/romana)
+// It is called "rlog", because it was originally written for the
+// Romana project (https://github.com/romana/romana).
 //
 // Features
 //
@@ -78,7 +78,7 @@
 //
 // Controlling rlog through environment or config file variables
 //
-// Rlog is configured via the following variables, which may either be defined as
+// Rlog is configured via the following settings, which may either be defined as
 // environment variables or via a config file.
 //
 //
@@ -121,8 +121,8 @@
 // https://golang.org/src/time/format.go (https://golang.org/src/time/format.go) (for
 //                 example "UnixDate" or "RFC3339") or as an example
 //                 date/time output, which is described here:
-//                
-// https://golang.org/pkg/time/#Time.Format (https://golang.org/pkg/time/#Time.Format)                Default: Not set - formatted according to RFC3339.
+// https://golang.org/pkg/time/#Time.Format (https://golang.org/pkg/time/#Time.Format)
+//                 Default: Not set - formatted according to RFC3339.
 //
 //
 // • RLOG_LOG_NOTIME:  If this variable is set to "1", "yes" or something else
@@ -148,28 +148,31 @@
 //                 Default: Not set - meaning the output goes to stderr.
 //
 //
-// • RLOG_CONF_FILE:   This is the only control variable, which is only allowed to
-//                 appear as an environment variable. It cannot appear in a
-//                 config file. If this variable is set then rlog looks for
-//                 the config file at the specified location, which needs to
-//                 be the absolute path of the file. If this variable is not
-//                 defined, then rlog will look for the config file in
-//                 "/etc/rlog/your-executable-name.conf".
+// There are two more settings, related to the configuration file, which can only
+// be set via environment variables.
+//
+//
+// • RLOG_CONF_FILE:   If this variable is set then rlog looks for the config
+//                 file at the specified location, which needs to be the
+//                 absolute path of the file. If this variable is not defined,
+//                 then rlog will look for the config file in
+//                 "/etc/rlog/your-executable-name.conf". Therefore,
+//                 by default every executable has its own config file.
+//                 By setting this variable, you could force multiple
+//                 processes to share the same config file.
 //
 //
 // • RLOG_CONF_CHECK_INTERVAL: Number of seconds between checking whether the
 //                 config file has changed. By default, this is set to 15
 //                 seconds. This means that within 15 seconds a changed
-//                 logging configuration will take effect. Note that this
-//                 check is only performed when a log message is actually
-//                 written. If the program does nothing or doesn't log
-//                 messages, the config file won't be read. If there is no
+//                 logging configuration in the config file will take effect.
+//                 Note that this check is only performed when a log message
+//                 is actually written. If the program does nothing or doesn't
+//                 log messages, the config file won't be read. If there is no
 //                 config file or it has been removed then the configuration
-//                 from the environment variables is used. Set this value to
-//                 0 order to switch off the regular log file checking. Be
-//                 careful when setting it to 0 via the config file: rlog will
-//                 not check the config file again and therefore, this setting
-//                 cannot be undone.
+//                 from the environment variables is used. Set this value to 0
+//                 in order to switch off the regular config file checking:
+//                 The config file will then only be read once at the start.
 //
 //
 // Please note! If these environment variables have incorrect or misspelled
@@ -220,10 +223,22 @@
 // name as the environment variable. So, your config file may look like this:
 //
 //
-//   RLOG_LOG_LEVEL=WARN
-//   RLOG_LOG_STREAM=stdout
-//   RLOG_TIME_FORMAT=UnixDate
-//   RLOG_LOG_FILE=/var/log/myapp.log
+//   RLOG_LOG_LEVEL  = WARN
+//   RLOG_LOG_STREAM = stdout
+//   RLOG_TIME_FORMAT= UnixDate
+//   RLOG_LOG_FILE   = /var/log/myapp.log
+//
+// A few notes about config file formatting:
+//
+// • Empty lines are ignored.
+//
+// • Leading and trailing spaces in lines are removed.
+//
+// • Everything after the first '=' will be taken as the value of the setting.
+//
+// • Leading and trailing spaces in values are removed.
+//
+// • Spaces or further '=' characters within values are taken as they are.
 //
 // Combining configuration from environment variables and config file
 //

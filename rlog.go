@@ -26,12 +26,15 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 // A few constants, which are used more like flags
-const notATrace = -1
-const noTraceOutput = -1
+const (
+	notATrace     = -1
+	noTraceOutput = -1
+)
 
 // The known log levels
 const (
@@ -107,19 +110,24 @@ var configFromEnvVars rlogConfig
 // configuration.  We interpret this, combine it with configuration from the
 // config file and produce pre-processed configuration values, which are stored
 // in those variables below.
-var settingShowCallerInfo bool                            // whether we log caller info
-var settingDateTimeFormat string                          // flags for date/time output
-var settingLogFile string                                 // logfile name
-var settingConfFile string                                // config file name
-var settingCheckInterval time.Duration = 15 * time.Second // how often we check the conf file
+var (
+	settingShowCallerInfo bool   // whether we log caller info
+	settingDateTimeFormat string // flags for date/time output
+	settingLogFile        string // logfile name
+	settingConfFile       string // config file name
+	// how often we check the conf file
+	settingCheckInterval time.Duration = 15 * time.Second
 
-var logWriterStream *log.Logger   // the first writer to which output is sent
-var logWriterFile *log.Logger     // the second writer to which output is sent
-var logFilterSpec *filterSpec     // filters for log messages
-var traceFilterSpec *filterSpec   // filters for trace messages
-var lastConfigFileCheck time.Time // when did we last check the config file
-var currentLogFile *os.File       // the logfile currently in use
-var currentLogFileName string     // name of current log file
+	logWriterStream     *log.Logger // the first writer to which output is sent
+	logWriterFile       *log.Logger // the second writer to which output is sent
+	logFilterSpec       *filterSpec // filters for log messages
+	traceFilterSpec     *filterSpec // filters for trace messages
+	lastConfigFileCheck time.Time   // when did we last check the config file
+	currentLogFile      *os.File    // the logfile currently in use
+	currentLogFileName  string      // name of current log file
+
+	initMutex sync.Mutex // used to protect the init section
+)
 
 // fromString initializes filterSpec from string.
 //
@@ -172,11 +180,15 @@ func (spec *filterSpec) fromString(s string, isTraceLevels bool, globalLevelDefa
 			levelToken = tokens[1]
 		} else {
 			// Skip anything else that's malformed
+			rlogIssue("Malformed log filter expression: '%s'", f)
 			continue
 		}
 		if isTraceLevels {
 			// The level token should contain a numeric value
 			if filterLevel, err = strconv.Atoi(levelToken); err != nil {
+				if levelToken != "" {
+					rlogIssue("Trace level '%s' is not a number.", levelToken)
+				}
 				continue
 			}
 		} else {
@@ -187,6 +199,9 @@ func (spec *filterSpec) fromString(s string, isTraceLevels bool, globalLevelDefa
 				// User not allowed to set trace log levels, so if that or
 				// not a known log level then this specification will be
 				// ignored.
+				if levelToken != "" {
+					rlogIssue("Illegal log level '%s'.", levelToken)
+				}
 				continue
 			}
 
@@ -265,6 +280,8 @@ func updateIfNeeded(oldVal string, newVal string, priority bool) string {
 // updateConfigFromFile reads a configuration from the specified config file.
 // It merges the supplied config with the new values.
 func updateConfigFromFile(config *rlogConfig) {
+	lastConfigFileCheck = time.Now()
+
 	settingConfFile = config.confFile
 	// If no config file was specified we will default to a known location.
 	if settingConfFile == "" {
@@ -277,7 +294,8 @@ func updateConfigFromFile(config *rlogConfig) {
 	defer file.Close()
 	if err != nil {
 		// Any error while attempting to open the logfile ignored. In many
-		// cases there won't even be a config file.
+		// cases there won't even be a config file, so we should not produce
+		// any noise.
 		return
 	}
 
@@ -294,9 +312,8 @@ func updateConfigFromFile(config *rlogConfig) {
 			continue
 		}
 		if len(tokens) != 2 {
-			fmt.Fprintf(os.Stderr, "WARN: rlog - Malformed line in config file %s:%d\n",
+			rlogIssue("Malformed line in config file %s:%d. Ignored.",
 				settingConfFile, i)
-			fmt.Fprintf(os.Stderr, "%s\n", tokens)
 			continue
 		}
 		name := strings.TrimSpace(tokens[0])
@@ -319,9 +336,6 @@ func updateConfigFromFile(config *rlogConfig) {
 			config.logTimeFormat = updateIfNeeded(config.logTimeFormat, val, priority)
 		case "RLOG_LOG_FILE":
 			config.logFile = updateIfNeeded(config.logFile, val, priority)
-		case "RLOG_CONF_FILE":
-			fmt.Fprintf(os.Stderr, "WARN: rlog - Ignoring attempt to change config file in config file %s:%d\n",
-				settingConfFile, i)
 		case "RLOG_LOG_STREAM":
 			val = strings.ToUpper(val)
 			config.logStream = updateIfNeeded(config.logStream, val, priority)
@@ -329,12 +343,9 @@ func updateConfigFromFile(config *rlogConfig) {
 			config.logNoTime = updateIfNeeded(config.logNoTime, val, priority)
 		case "RLOG_CALLER_INFO":
 			config.showCallerInfo = updateIfNeeded(config.showCallerInfo, val, priority)
-		case "RLOG_CONF_CHECK_INTERVAL":
-			config.confCheckInterv = updateIfNeeded(config.confCheckInterv, val, priority)
 		default:
-			fmt.Fprintf(os.Stderr, "WARN: rlog - Unknown setting name in config file %s:%d\n",
+			rlogIssue("Unknown or illegal setting name in config file %s:%d. Ignored.",
 				settingConfFile, i)
-			continue
 		}
 	}
 }
@@ -371,6 +382,9 @@ func init() {
 func initialize(config rlogConfig, reInitEnvVars bool) {
 	var err error
 
+	initMutex.Lock()
+	defer initMutex.Unlock()
+
 	if reInitEnvVars {
 		configFromEnvVars = config
 	}
@@ -382,6 +396,11 @@ func initialize(config rlogConfig, reInitEnvVars bool) {
 	checkTime, err = strconv.Atoi(config.confCheckInterv)
 	if err == nil {
 		settingCheckInterval = time.Duration(checkTime) * time.Second
+	} else {
+		if config.confCheckInterv != "" {
+			rlogIssue("Cannot parse config check interval value '%s'. Using default.",
+				config.confCheckInterv)
+		}
 	}
 	logNoTime := isTrueBoolString(config.logNoTime)
 	settingShowCallerInfo = isTrueBoolString(config.showCallerInfo)
@@ -460,6 +479,9 @@ func initialize(config rlogConfig, reInitEnvVars bool) {
 					os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 				if err == nil {
 					logWriterFile = log.New(newLogFile, "", 0)
+				} else {
+					rlogIssue("Unable to open log file: %s", err)
+					return
 				}
 			}
 		}
@@ -501,15 +523,23 @@ func isTrueBoolString(str string) bool {
 	return false
 }
 
+// rlogIssue is used by rlog itself to report issues or problems. This is mostly
+// independent of the standard logging settings, since a problem may have
+// occurred while trying to establish the standard settings. So, where can rlog
+// itself report any problems? For now, we just write those out to stderr.
+func rlogIssue(prefix string, a ...interface{}) {
+	fmtStr := fmt.Sprintf("rlog - %s\n", prefix)
+	fmt.Fprintf(os.Stderr, fmtStr, a...)
+}
+
 // basicLog is called by all the 'level' log functions.
-// It checks what is configured to be included in the log message,
-// decorates it accordingly and assembles the entire line. It then
-// uses the standard log package to finally output the message.
+// It checks what is configured to be included in the log message, decorates it
+// accordingly and assembles the entire line. It then uses the standard log
+// package to finally output the message.
 func basicLog(logLevel int, traceLevel int, format string, prefixAddition string, a ...interface{}) {
 	// Check if it's time to load updated information from the config file
 	now := time.Now()
 	if settingCheckInterval > 0 && now.Sub(lastConfigFileCheck) > settingCheckInterval {
-		lastConfigFileCheck = now
 		initialize(configFromEnvVars, false)
 	}
 
@@ -568,14 +598,6 @@ func basicLog(logLevel int, traceLevel int, format string, prefixAddition string
 	}
 	if logWriterFile != nil {
 		logWriterFile.Printf(logLine)
-	}
-}
-
-// Flush syncs the content of the logfile, which might still be in a memory
-// buffer, to storage. This should rarely be necessary during normal operation.
-func Flush() {
-	if currentLogFile != nil {
-		currentLogFile.Sync()
 	}
 }
 
