@@ -36,7 +36,7 @@ var fixedLogfileName bool = false
 // setup is called at the start of each test and prepares a new log file. It
 // also returns a new configuration, as it may have been supplied by the user
 // in environment variables, which can be used by this test.
-func setup() rlogEnvConfig {
+func setup() rlogConfig {
 	if fixedLogfileName {
 		logfile = "/tmp/rlog-test.log"
 	} else {
@@ -48,7 +48,7 @@ func setup() rlogEnvConfig {
 	os.Remove(logfile)
 
 	// Provide a default config, which can be used or modified by the tests
-	return rlogEnvConfig{
+	return rlogConfig{
 		logLevel:       "",
 		traceLevel:     "",
 		logTimeFormat:  "",
@@ -130,7 +130,7 @@ func TestLogLevels(t *testing.T) {
 	defer cleanup()
 
 	conf.logLevel = "DEBUG"
-	initialize(conf)
+	initialize(conf, true) // re-initialize the environment variable config
 
 	Debug("Test Debug")
 	Info("Test Info")
@@ -156,7 +156,7 @@ func TestLogLevelsLimited(t *testing.T) {
 
 	conf.logLevel = "WARN"
 	conf.traceLevel = "3"
-	initialize(conf)
+	initialize(conf, true)
 
 	Debug("Test Debug")
 	Info("Test Info")
@@ -186,7 +186,7 @@ func TestLogFormatted(t *testing.T) {
 
 	conf.logLevel = "DEBUG"
 	conf.traceLevel = "1"
-	initialize(conf)
+	initialize(conf, true)
 
 	Debugf("Test Debug %d", 123)
 	Infof("Test Info %d", 123)
@@ -243,7 +243,7 @@ func TestLogTimestamp(t *testing.T) {
 
 		// Specify a time layout...
 		conf.logTimeFormat = tsUserSpecified
-		initialize(conf)
+		initialize(conf, true)
 
 		Info("Test Info")
 		// We can specify a time layout to fileMatch, which then performs the extra
@@ -261,7 +261,7 @@ func TestLogCallerInfo(t *testing.T) {
 	defer cleanup()
 
 	conf.showCallerInfo = "true"
-	initialize(conf)
+	initialize(conf, true)
 
 	Info("Test Info")
 	pc, fullFilePath, line, _ := runtime.Caller(0)
@@ -295,7 +295,7 @@ func TestLogLevelsFiltered(t *testing.T) {
 
 	conf.logLevel = "rlog_test.go=WARN"
 	conf.traceLevel = "foobar.go=2" // should not see any of those
-	initialize(conf)
+	initialize(conf, true)
 
 	Debug("Test Debug")
 	Info("Test Info")
@@ -343,7 +343,7 @@ func TestConfFile(t *testing.T) {
 
 	// Set the default configuration and check how this is reflected in the
 	// internal settings variables.
-	initialize(conf)
+	initialize(conf, true)
 
 	checkLogFilter(t, "", levelInfo)
 	t.Log("trace filter = ", traceFilterSpec)
@@ -353,7 +353,7 @@ func TestConfFile(t *testing.T) {
 
 	conf.confFile = writeLogfile([]string{"RLOG_LOG_LEVEL=DEBUG"})
 	defer os.Remove(conf.confFile)
-	initialize(conf)
+	initialize(conf, true)
 	// No explicit log level was set in the initial, default config. Therefore,
 	// the conf file value should have overwritten that.
 	checkLogFilter(t, "", levelDebug)
@@ -361,14 +361,14 @@ func TestConfFile(t *testing.T) {
 	// Now we test with an initial config, which contains an explicit value for
 	// the log level. The INFO value should remain.
 	conf.logLevel = "INFO"
-	initialize(conf)
+	initialize(conf, true)
 	checkLogFilter(t, "", levelInfo)
 
 	// Now we test the 'override' option (start the config in the conf file
 	// with a '!'). With that, the conf file takes precedence.
 	conf.confFile = writeLogfile([]string{"!RLOG_LOG_LEVEL=DEBUG"})
 	defer os.Remove(conf.confFile)
-	initialize(conf)
+	initialize(conf, true)
 	checkLogFilter(t, "", levelDebug)
 
 	// Test that a full filter spec can be read from logfile and also test that
@@ -377,6 +377,6 @@ func TestConfFile(t *testing.T) {
 		"  !RLOG_LOG_LEVEL = foo.go=DEBUG   ",
 	})
 	defer os.Remove(conf.confFile)
-	initialize(conf)
+	initialize(conf, true)
 	checkLogFilter(t, "foo.go", levelDebug)
 }

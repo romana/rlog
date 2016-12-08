@@ -10,6 +10,9 @@ https://github.com/romana/romana
 
 ## Features
 
+* Logging configuration of a running process can be modified, without needing
+  to restart it. This allows for on-demand finer level logging, if a process
+  starts to experience issues, for example.
 * Is configured through environment variables or config file: No need to call a
   special init function of some kind to initialize and configure the logger.
 * Offers familiar and easy to use log functions for the usual levels: Debug,
@@ -112,6 +115,19 @@ environment variables or via a config file.
                     be the absolute path of the file. If this variable is not
                     defined, then rlog will look for the config file in
                     "/etc/rlog/your-executable-name.conf".
+* RLOG_CONF_CHECK_INTERVAL: Number of seconds between checking whether the
+                    config file has changed. By default, this is set to 15
+                    seconds. This means that within 15 seconds a changed
+                    logging configuration will take effect. Note that this
+                    check is only performed when a log message is actually
+                    written. If the program does nothing or doesn't log
+                    messages, the config file won't be read. If there is no
+                    config file or it has been removed then the configuration
+                    from the environment variables is used. Set this value to
+                    0 order to switch off the regular log file checking. Be
+                    careful when setting it to 0 via the config file: rlog will
+                    not check the config file again and therefore, this setting
+                    cannot be undone.
 
 Please note! If these environment variables have incorrect or misspelled
 values then they will be silently ignored and a default value will be used.
@@ -120,7 +136,9 @@ values then they will be silently ignored and a default value will be used.
 ## Using the config file
 
 A config file for rlog is entirely optional, since rlog works just fine even
-without it.
+without it. However, it does provide you with a very neat feature: You can
+change the logging configuration of a running program without having to restart
+it!
 
 When rlog is imported it starts out with the defaults described above. It then
 takes an initial configuration from environment variables, which may override
@@ -129,6 +147,17 @@ the config file it will quietly continue without error. If the config file is
 found then the configuration from environment variables is combined with the
 configuraton from the config file. More about how this combination works, and
 what takes precedence, in a moment.
+
+### Updating the logging config of a running program
+
+Every time you log a message and at least RLOG_CONF_CHECK_INTERVAL seconds have
+elapsed since the last reading of the config file, rlog will automatically
+re-read the content of the conf file and re-apply the configuration it finds
+there over the initial configuration, which was based on the environment
+variables.
+
+You can always just delete the config file to go back to the configuration
+based on environment variables.
 
 ### Logfile location
 
