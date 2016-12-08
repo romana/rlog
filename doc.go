@@ -82,97 +82,82 @@
 // environment variables or via a config file.
 //
 //
-// • RLOG_LOG_LEVEL:   Set to "DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"
-//                 or "NONE".
-//                 Any message of a level >= than what's configured will
-//                 be printed. If this is not defined it will default to
-//                 "INFO". If it is set to "NONE" then all logging is
-//                 disabled, except Trace logs, which are controlled via a
-//                 separate variable. In addition, log levels can be set
-//                 for individual files (see below for more information).
-//                 Default: INFO - meaning that INFO and higher is logged.
+// • RLOG_LOG_LEVEL: Set to "DEBUG", "INFO", "WARN", "ERROR", "CRITICAL" or
+// "NONE". Any message of a level >= than what's configured will be printed. If
+// this is not defined it will default to "INFO". If it is set to "NONE" then
+// all logging is disabled, except Trace logs, which are controlled via a
+// separate variable. In addition, log levels can be set for individual files
+// (see below for more information). Default: INFO - meaning that INFO and
+// higher is logged.
 //
 //
 // • RLOG_TRACE_LEVEL: "Trace" log messages take an additional numeric level as
-//                 first parameter. The user can specify an arbitrary
-//                 number of levels. Set RLOG_TRACE_LEVEL to a number. All
-//                 Trace messages with a level <= RLOG_TRACE_LEVEL will be
-//                 printed. If this variable is undefined, or set to -1
-//                 then no Trace messages are printed. The idea is that the
-//                 higher the RLOG_TRACE_LEVEL value, the more 'chatty' and
-//                 verbose the Trace message output becomes. In addition,
-//                 trace levels can be set for individual files (see below
-//                 for more information).
-//                 Default: Not set - meaning that no trace messages are
-//                 logged.
+// first parameter. The user can specify an arbitrary number of levels. Set
+// RLOG_TRACE_LEVEL to a number. All Trace messages with a level <=
+// RLOG_TRACE_LEVEL will be printed. If this variable is undefined, or set to -1
+// then no Trace messages are printed. The idea is that the higher the
+// RLOG_TRACE_LEVEL value, the more 'chatty' and verbose the Trace message
+// output becomes. In addition, trace levels can be set for individual files
+// (see below for more information). Default: Not set - meaning that no trace
+// messages are logged.
 //
 //
 // • RLOG_CALLER_INFO: If this variable is set to "1", "yes" or something else
-//                 that evaluates to 'true' then the message also contains
-//                 the caller information, consisting of the file and line
-//                 number as well as function name from which the log
-//                 message was called.
-//                 Default: No - meaning that no caller info is logged.
+// that evaluates to 'true' then the message also contains the caller
+// information, consisting of the file and line number as well as function name
+// from which the log message was called. Default: No - meaning that no caller
+// info is logged.
 //
 //
 // • RLOG_TIME_FORMAT: Use this variable to customize the date/time format. The
-//                 format is specified either by the well known formats
-//                 listed in
-// https://golang.org/src/time/format.go (https://golang.org/src/time/format.go) (for
-//                 example "UnixDate" or "RFC3339") or as an example
-//                 date/time output, which is described here:
-// https://golang.org/pkg/time/#Time.Format (https://golang.org/pkg/time/#Time.Format)
-//                 Default: Not set - formatted according to RFC3339.
+// format is specified either by the well known formats listed in
+// https://golang.org/src/time/format.go (https://golang.org/src/time/format.go), for example "UnixDate" or "RFC3339".
+// Or as an example date/time output, which is described here:
+// https://golang.org/pkg/time/#Time.Format (https://golang.org/pkg/time/#Time.Format) Default: Not set - formatted
+// according to RFC3339.
 //
 //
-// • RLOG_LOG_NOTIME:  If this variable is set to "1", "yes" or something else
-//                 that evaluates to 'true' then no date/time stamp is
-//                 logged with each log message. This is useful in
-//                 environments that use systemd where access to the logs
-//                 via their logging tools already gives you time stamps.
-//                 Default: No - meaning that time/date is logged.
+// • RLOG_LOG_NOTIME: If this variable is set to "1", "yes" or something else
+// that evaluates to 'true' then no date/time stamp is logged with each log
+// message. This is useful in environments that use systemd where access to the
+// logs via their logging tools already gives you time stamps. Default: No -
+// meaning that time/date is logged.
 //
 //
-// • RLOG_LOG_FILE:    Provide a filename here to determine if the logfile
-//                 should be written to a file, in addition to the output
-//                 stream specified in RLOG_LOG_STREAM.
-//                 Default: Not set - meaning that output is not written to
-//                 a file.
+// • RLOG_LOG_FILE: Provide a filename here to determine if the logfile should
+// be written to a file, in addition to the output stream specified in
+// RLOG_LOG_STREAM. Default: Not set - meaning that output is not written to a
+// file.
 //
 //
-// • RLOG_LOG_STREAM:  Use this to direct the log output to a different output
-//                 stream, instead of stderr. This accepts three values:
-//                 "stderr", "stdout" or "none". If either stderr or stdout
-//                 is defined here AND a logfile is specified via
-//                 RLOG_LOG_FILE then the output is sent to both.
-//                 Default: Not set - meaning the output goes to stderr.
+// • RLOG_LOG_STREAM: Use this to direct the log output to a different output
+// stream, instead of stderr. This accepts three values: "stderr", "stdout" or
+// "none". If either stderr or stdout is defined here AND a logfile is specified
+// via RLOG_LOG_FILE then the output is sent to both. Default: Not set -
+// meaning the output goes to stderr.
 //
 //
 // There are two more settings, related to the configuration file, which can only
 // be set via environment variables.
 //
 //
-// • RLOG_CONF_FILE:   If this variable is set then rlog looks for the config
-//                 file at the specified location, which needs to be the
-//                 absolute path of the file. If this variable is not defined,
-//                 then rlog will look for the config file in
-//                 "/etc/rlog/your-executable-name.conf". Therefore,
-//                 by default every executable has its own config file.
-//                 By setting this variable, you could force multiple
-//                 processes to share the same config file.
+// • RLOG_CONF_FILE: If this variable is set then rlog looks for the config
+// file at the specified location, which needs to be the absolute path of the
+// file. If this variable is not defined, then rlog will look for the config
+// file in "/etc/rlog/your-executable-name.conf". Therefore, by default every
+// executable has its own config file. By setting this variable, you could
+// force multiple processes to share the same config file.
 //
 //
 // • RLOG_CONF_CHECK_INTERVAL: Number of seconds between checking whether the
-//                 config file has changed. By default, this is set to 15
-//                 seconds. This means that within 15 seconds a changed
-//                 logging configuration in the config file will take effect.
-//                 Note that this check is only performed when a log message
-//                 is actually written. If the program does nothing or doesn't
-//                 log messages, the config file won't be read. If there is no
-//                 config file or it has been removed then the configuration
-//                 from the environment variables is used. Set this value to 0
-//                 in order to switch off the regular config file checking:
-//                 The config file will then only be read once at the start.
+// config file has changed. By default, this is set to 15 seconds. This means
+// that within 15 seconds a changed logging configuration in the config file
+// will take effect. Note that this check is only performed when a log message
+// is actually written. If the program does nothing or doesn't log messages, the
+// config file won't be read. If there is no config file or it has been removed
+// then the configuration from the environment variables is used. Set this value
+// to 0 in order to switch off the regular config file checking: The config file
+// will then only be read once at the start.
 //
 //
 // Please note! If these environment variables have incorrect or misspelled
@@ -261,11 +246,12 @@
 // precedence over whatever was defined in the environment variables.
 //
 //
-// !RLOG_LOG_LEVEL=WARN
-// RLOG_LOG_STREAM=stdout
-// !RLOG_TIME_FORMAT=UnixDate
-// RLOG_LOG_FILE=/var/log/myapp.log
+// An example of using '!' in the config file:
 //
+//   !RLOG_LOG_LEVEL=WARN
+//   RLOG_LOG_STREAM=stdout
+//   !RLOG_TIME_FORMAT=UnixDate
+//   RLOG_LOG_FILE=/var/log/myapp.log
 //
 // Per file level log and trace levels
 //
@@ -300,12 +286,6 @@
 //
 // This sets a trace level of 5 for example.go and 2 for everyone else.
 //
-// Note that as before, if in RLOG_LOG_LEVEL no global log level is specified then
-// INFO is assumed to be the global log level. If in RLOG_TRACE_LEVEL no global
-// trace level is specified then -1 (no trace output) is assumed as the global
-// trace level.
-//
-//
 // More examples:
 //
 //   # DEBUG level for all files whose name starts with 'ex', WARNING level for
@@ -324,6 +304,12 @@
 //
 //   # The default log level can appear anywhere in the list.
 //   export RLOG_LOG_LEVEL=example.go=DEBUG,INFO,foo.go=WARN
+//
+// Note that as before, if in RLOG_LOG_LEVEL no global log level is specified then
+// INFO is assumed to be the global log level. If in RLOG_TRACE_LEVEL no global
+// trace level is specified then -1 (no trace output) is assumed as the global
+// trace level.
+//
 //
 // Usage example
 //
@@ -437,11 +423,11 @@
 //
 // Links
 //
-// • Goreportcard.com: https://goreportcard.com/report/github.com/romana/rlog (https://goreportcard.com/report/github.com/romana/rlog)
+// • Goreportcard.com (https://goreportcard.com/report/github.com/romana/rlog)
 //
-// • Godoc.com: https://godoc.org/github.com/romana/rlog (https://godoc.org/github.com/romana/rlog)
+// • Godoc.com (https://godoc.org/github.com/romana/rlog)
 //
-// • Gocover.io: http://gocover.io/github.com/romana/rlog (http://gocover.io/github.com/romana/rlog)
+// • Gocover.io (http://gocover.io/github.com/romana/rlog)
 //
 //
 package rlog
