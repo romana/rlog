@@ -21,6 +21,7 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -379,4 +380,31 @@ func TestConfFile(t *testing.T) {
 	defer os.Remove(conf.confFile)
 	initialize(conf, true)
 	checkLogFilter(t, "foo.go", levelDebug)
+}
+
+// TestRaceConditions stress tests thread safety of rlog. Useful when running
+// with the race detector flag (--race).
+func TestRaceConditions(t *testing.T) {
+	conf := setup()
+	defer cleanup()
+
+	for i := 0; i < 1000; i++ {
+		go func(conf rlogConfig, i int) {
+			for j := 0; j < 100; j++ {
+				// Change behaviour and config around a little
+				if j%2 == 0 {
+					conf.showCallerInfo = "true"
+				}
+				conf.traceLevel = strconv.Itoa(j%10 - 1) // sometimes this will be -1
+				//initialize(conf, j%3 == 0)
+				initialize(conf, false)
+				Debug("Test Debug")
+				Info("Test Info")
+				Trace(1, "Some trace")
+				Trace(2, "Some trace")
+				Trace(3, "Some trace")
+				Trace(4, "Some trace")
+			}
+		}(conf, i)
+	}
 }
