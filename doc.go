@@ -208,6 +208,7 @@
 // name as the environment variable. So, your config file may look like this:
 //
 //
+//   # Comment lines start with a '#'
 //   RLOG_LOG_LEVEL  = WARN
 //   RLOG_LOG_STREAM = stdout
 //   RLOG_TIME_FORMAT= UnixDate
@@ -215,7 +216,7 @@
 //
 // A few notes about config file formatting:
 //
-// • Empty lines are ignored.
+// • Empty lines, or lines starting with '#' are ignored.
 //
 // • Leading and trailing spaces in lines are removed.
 //

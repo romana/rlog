@@ -160,6 +160,7 @@ different logging configurations for each of your processes.
 The format of the logfile is simple. Each setting is referred to by the same
 name as the environment variable. So, your config file may look like this:
 
+    # Comment lines start with a '#'
     RLOG_LOG_LEVEL  = WARN
     RLOG_LOG_STREAM = stdout
     RLOG_TIME_FORMAT= UnixDate
@@ -167,7 +168,7 @@ name as the environment variable. So, your config file may look like this:
 
 A few notes about config file formatting:
 
-* Empty lines are ignored.
+* Empty lines, or lines starting with '#' are ignored.
 * Leading and trailing spaces in lines are removed.
 * Everything after the first '=' will be taken as the value of the setting.
 * Leading and trailing spaces in values are removed.
