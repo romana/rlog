@@ -19,6 +19,8 @@
 // special init function of some kind to initialize and configure the logger.
 //
 //
+// • A new config file can be specified and applied programmatically at any time.
+//
 // • Offers familiar and easy to use log functions for the usual levels: Debug,
 // Info, Warn, Error and Critical.
 //
@@ -147,6 +149,8 @@
 // file in "/etc/rlog/your-executable-name.conf". Therefore, by default every
 // executable has its own config file. By setting this variable, you could
 // force multiple processes to share the same config file.
+// Note that with the SetConfFile() function you can specify a new config file
+// programmatically at any time, even with a relative path.
 //
 //
 // • RLOG_CONF_CHECK_INTERVAL: Number of seconds between checking whether the
@@ -200,6 +204,11 @@
 // environment variable. Absent that, rlog looks for a config file in
 // "/etc/rlog/your-executable-name.conf". This means that you can easily provide
 // different logging configurations for each of your processes.
+//
+//
+// A new config file location can also be specified at any time via the
+// SetConfFile() function. An absolute or relative path may be specfied with that
+// function.
 //
 //
 // Logfile format

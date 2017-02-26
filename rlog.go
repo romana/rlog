@@ -498,6 +498,13 @@ func initialize(config rlogConfig, reInitEnvVars bool) {
 	}
 }
 
+// SetConfFile enables the programmatic setting of a new config file path.
+// Any config values specified in that file will be immediately applied.
+func SetConfFile(confFileName string) {
+	configFromEnvVars.confFile = confFileName
+	initialize(configFromEnvVars, false)
+}
+
 // SetOutput re-wires the log output to a new io.Writer. By default rlog
 // logs to os.Stderr, but this function can be used to direct the output
 // somewhere else. If output to two destinations was specified via environment
@@ -553,8 +560,7 @@ func basicLog(logLevel int, traceLevel int, isLocked bool, format string, prefix
 		// This unlock always happens, since initMutex is locked at this point,
 		// either by this function or the caller Initialize needs to be able to
 		initMutex.RUnlock()
-		// get the full lock, so we need to
-		// release ours.
+		// Get the full lock, so we need to release ours.
 		initialize(configFromEnvVars, false)
 		// Take our reader lock again. This is fine, since only the check
 		// interval related items were read earlier.

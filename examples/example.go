@@ -51,7 +51,7 @@ func main() {
 
 	rlog.Info("Back to stderr")
 
-	// To test out changing the log configurtion of a running process, set the
+	// To test out changing the log configuration of a running process, set the
 	// RLOG_CONF_FILE environment variable to an absolute path for a
 	// configuration file that you can create and edit. Also, you might want to
 	// set RLOG_CONF_CHECK_INTERVAL to a smaller number, so you don't have to
@@ -60,6 +60,8 @@ func main() {
 	// the example program.
 
 	/*
+		rlog.SetConfFile("some-other-rlog.conf")
+
 		for {
 			time.Sleep(time.Second * 1)
 			rlog.Debug("A debug log message")
