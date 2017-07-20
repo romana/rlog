@@ -603,7 +603,8 @@ func basicLog(logLevel int, traceLevel int, isLocked bool, format string, prefix
 
 	callerInfo := ""
 	if settingShowCallerInfo {
-		callerInfo = fmt.Sprintf("[%s:%d (%s)] ", moduleAndFileName,
+		callerInfo = fmt.Sprintf("[%d %s:%d (%s)] ", os.Getpid(),
+			moduleAndFileName,
 			line, callingFuncName)
 	}
 
