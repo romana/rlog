@@ -50,6 +50,7 @@ var levelNumbers = map[string]int{
 // Path to the config file. Defined here for standalone example purpose
 const (
 	rlogConfigFile = "/tmp/rlog.conf"
+	rlogConfigFileUmask = 0644
 )
 
 // LogConfHandler is a handler function for the gin-gonic framework to change trace and log level
@@ -99,7 +100,7 @@ func setGlobalLogConf(level string, trace int) error {
 			}
 		}
 		output := strings.Join(lines, "\n")
-		err = ioutil.WriteFile(rlogConfigFile, []byte(output), 0644)
+		err = ioutil.WriteFile(rlogConfigFile, []byte(output), rlogConfigFileUmask)
 
 		if err != nil {
 			return errors.New("could not replace config file: " + err.Error())
