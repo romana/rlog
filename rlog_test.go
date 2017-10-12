@@ -179,6 +179,36 @@ func TestLogLevelsLimited(t *testing.T) {
 	fileMatch(t, checkLines, "")
 }
 
+// TestLogFormattedGID checks whether the *f functions for formatted output work
+// as expected with a %G format
+func TestLogFormattedGID(t *testing.T) {
+	conf := setup()
+	defer cleanup()
+
+	conf.logLevel = "DEBUG"
+	conf.traceLevel = "1"
+	initialize(conf, true)
+
+	gid := getGID()
+
+	Debugf("%G: Test Debug %d", 123)
+	Infof("%G: Test Info %d", 123)
+	Warnf("%G: Test Warning %d", 123)
+	Errorf("%G: Test Error %d", 123)
+	Criticalf("%G: Test Critical %d", 123)
+	Tracef(1, "%G: Trace 1 %d", 123)
+	Tracef(2, "%G: Trace 2 %d", 123)
+	checkLines := []string{
+		fmt.Sprintf("DEBUG    : %d: Test Debug 123", gid),
+		fmt.Sprintf("INFO     : %d: Test Info 123", gid),
+		fmt.Sprintf("WARN     : %d: Test Warning 123", gid),
+		fmt.Sprintf("ERROR    : %d: Test Error 123", gid),
+		fmt.Sprintf("CRITICAL : %d: Test Critical 123", gid),
+		fmt.Sprintf("TRACE(1) : %d: Trace 1 123", gid),
+	}
+	fileMatch(t, checkLines, "")
+}
+
 // TestLogFormatted checks whether the *f functions for formatted output work
 // as expected.
 func TestLogFormatted(t *testing.T) {
@@ -278,7 +308,7 @@ func TestLogCallerInfo(t *testing.T) {
 		dirPath, moduleName = path.Split(dirPath)
 	}
 	moduleAndFileName := moduleName + "/" + fileName
-	shouldLine := fmt.Sprintf("INFO     : [%s:%d (%s)] Test Info",
+	shouldLine := fmt.Sprintf("INFO     : [%d %s:%d (%s)] Test Info", os.Getpid(),
 		moduleAndFileName, line, callingFuncName)
 
 	checkLines := []string{shouldLine}
