@@ -120,7 +120,6 @@ var configFromEnvVars rlogConfig
 var (
 	settingShowCallerInfo bool   // whether we log caller info
 	settingDateTimeFormat string // flags for date/time output
-	settingLogFile        string // logfile name
 	settingConfFile       string // config file name
 	// how often we check the conf file
 	settingCheckInterval time.Duration = 15 * time.Second
@@ -297,13 +296,13 @@ func updateConfigFromFile(config *rlogConfig) {
 
 	// Scan over the config file, line by line
 	file, err := os.Open(settingConfFile)
-	defer file.Close()
 	if err != nil {
 		// Any error while attempting to open the logfile ignored. In many
 		// cases there won't even be a config file, so we should not produce
 		// any noise.
 		return
 	}
+	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 	i := 0
@@ -377,52 +376,11 @@ func init() {
 	initialize(config, true)
 }
 
-// initialize translates config items into initialized data structures,
-// config values and freshly created or opened config files, if necessary.
-// This function prepares everything for the fast and efficient processing of
-// the actual log functions.
-// Importantly, it takes the passed in configuration and combines it with any
-// configuration provided in a configuration file.
-// If the reInitEnvVars flag is set then the passed-in configuration overwrites
-// the settings stored from the environment variables, which we need for our tests.
-func initialize(config rlogConfig, reInitEnvVars bool) {
-	var err error
-
-	initMutex.Lock()
-	defer initMutex.Unlock()
-
-	if reInitEnvVars {
-		configFromEnvVars = config
-	}
-
-	// Read and merge configuration from the config file
-	updateConfigFromFile(&config)
-
-	var checkTime int
-	checkTime, err = strconv.Atoi(config.confCheckInterv)
-	if err == nil {
-		settingCheckInterval = time.Duration(checkTime) * time.Second
-	} else {
-		if config.confCheckInterv != "" {
-			rlogIssue("Cannot parse config check interval value '%s'. Using default.",
-				config.confCheckInterv)
-		}
-	}
-	logNoTime := isTrueBoolString(config.logNoTime)
-	settingShowCallerInfo = isTrueBoolString(config.showCallerInfo)
-
-	// initialize filters for trace (by default no trace output) and log levels
-	// (by default INFO level).
-	newTraceFilterSpec := new(filterSpec)
-	newTraceFilterSpec.fromString(config.traceLevel, true, noTraceOutput)
-	traceFilterSpec = newTraceFilterSpec
-
-	newLogFilterSpec := new(filterSpec)
-	newLogFilterSpec.fromString(config.logLevel, false, levelInfo)
-	logFilterSpec = newLogFilterSpec
-
-	// Evaluate the specified date/time format
+// getTimeFormat returns the time format we should use for time stamps in log
+// lines, or nothing if "no time logging" has been requested.
+func getTimeFormat(config rlogConfig) string {
 	settingDateTimeFormat = ""
+	logNoTime := isTrueBoolString(config.logNoTime)
 	if !logNoTime {
 		// Store the format string for date/time logging. Allowed values are
 		// all the constants specified in
@@ -458,6 +416,54 @@ func initialize(config rlogConfig, reInitEnvVars bool) {
 		}
 		settingDateTimeFormat = f + " "
 	}
+	return settingDateTimeFormat
+}
+
+// initialize translates config items into initialized data structures,
+// config values and freshly created or opened config files, if necessary.
+// This function prepares everything for the fast and efficient processing of
+// the actual log functions.
+// Importantly, it takes the passed in configuration and combines it with any
+// configuration provided in a configuration file.
+// If the reInitEnvVars flag is set then the passed-in configuration overwrites
+// the settings stored from the environment variables, which we need for our tests.
+func initialize(config rlogConfig, reInitEnvVars bool) {
+	var err error
+
+	initMutex.Lock()
+	defer initMutex.Unlock()
+
+	if reInitEnvVars {
+		configFromEnvVars = config
+	}
+
+	// Read and merge configuration from the config file
+	updateConfigFromFile(&config)
+
+	var checkTime int
+	checkTime, err = strconv.Atoi(config.confCheckInterv)
+	if err == nil {
+		settingCheckInterval = time.Duration(checkTime) * time.Second
+	} else {
+		if config.confCheckInterv != "" {
+			rlogIssue("Cannot parse config check interval value '%s'. Using default.",
+				config.confCheckInterv)
+		}
+	}
+	settingShowCallerInfo = isTrueBoolString(config.showCallerInfo)
+
+	// initialize filters for trace (by default no trace output) and log levels
+	// (by default INFO level).
+	newTraceFilterSpec := new(filterSpec)
+	newTraceFilterSpec.fromString(config.traceLevel, true, noTraceOutput)
+	traceFilterSpec = newTraceFilterSpec
+
+	newLogFilterSpec := new(filterSpec)
+	newLogFilterSpec.fromString(config.logLevel, false, levelInfo)
+	logFilterSpec = newLogFilterSpec
+
+	// Evaluate the specified date/time format
+	settingDateTimeFormat = getTimeFormat(config)
 
 	// By default we log to stderr...
 	// Evaluating whether a different log stream should be used.

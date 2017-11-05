@@ -31,8 +31,8 @@ var logfile string
 // These two flags are used to quickly change behaviour of our tests, so that
 // we can manually check and test things during development of those tests.
 // The settings here reflect the correct behaviour for normal test runs.
-var removeLogfile bool = true
-var fixedLogfileName bool = false
+var removeLogfile = true
+var fixedLogfileName = false
 
 // setup is called at the start of each test and prepares a new log file. It
 // also returns a new configuration, as it may have been supplied by the user
