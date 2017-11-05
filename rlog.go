@@ -624,10 +624,10 @@ func basicLog(logLevel int, traceLevel int, isLocked bool, format string, prefix
 	logLine := fmt.Sprintf("%s%-9s: %s%s",
 		now.Format(settingDateTimeFormat), levelDecoration, callerInfo, msg)
 	if logWriterStream != nil {
-		logWriterStream.Printf(logLine)
+		logWriterStream.Print(logLine)
 	}
 	if logWriterFile != nil {
-		logWriterFile.Printf(logLine)
+		logWriterFile.Print(logLine)
 	}
 }
 

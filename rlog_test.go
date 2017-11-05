@@ -308,8 +308,9 @@ func TestLogCallerInfo(t *testing.T) {
 		dirPath, moduleName = path.Split(dirPath)
 	}
 	moduleAndFileName := moduleName + "/" + fileName
-	shouldLine := fmt.Sprintf("INFO     : [%d %s:%d (%s)] Test Info", os.Getpid(),
-		moduleAndFileName, line, callingFuncName)
+
+	shouldLine := fmt.Sprintf("INFO     : [%d %s:%d (%s)] Test Info",
+		os.Getpid(), moduleAndFileName, line, callingFuncName)
 
 	checkLines := []string{shouldLine}
 	fileMatch(t, checkLines, "")
