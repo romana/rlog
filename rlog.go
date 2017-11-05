@@ -17,6 +17,7 @@ package rlog
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -45,6 +46,10 @@ const (
 	levelInfo
 	levelDebug
 	levelTrace
+)
+
+const (
+	GIDFormatString = "%G"
 )
 
 // Translation map from level to string representation
@@ -611,7 +616,7 @@ func basicLog(logLevel int, traceLevel int, isLocked bool, format string, prefix
 	// Assemble the actual log line
 	var msg string
 	if format != "" {
-		msg = fmt.Sprintf(format, a...)
+		msg = fmtWithGID(format, a...)
 	} else {
 		msg = fmt.Sprintln(a...)
 	}
@@ -624,6 +629,28 @@ func basicLog(logLevel int, traceLevel int, isLocked bool, format string, prefix
 	if logWriterFile != nil {
 		logWriterFile.Print(logLine)
 	}
+}
+
+// fmtWithGID is like fmt.Sprintf, but adds another format character,
+// %G, which will be subsituted with Goroutine ID.
+func fmtWithGID(s string, args ...interface{}) string {
+	if strings.ContainsAny(s, GIDFormatString) {
+		gid := fmt.Sprintf("%d", getGID())
+		s = strings.Replace(s, GIDFormatString, gid, -1)
+	}
+	return fmt.Sprintf(s, args...)
+}
+
+// getGID gets the current goroutine ID (algorithm from
+// https://blog.sgmansfield.com/2015/12/goroutine-ids/) by
+// unwinding the stack.
+func getGID() uint64 {
+	b := make([]byte, 64)
+	b = b[:runtime.Stack(b, false)]
+	b = bytes.TrimPrefix(b, []byte("goroutine "))
+	b = b[:bytes.IndexByte(b, ' ')]
+	n, _ := strconv.ParseUint(string(b), 10, 64)
+	return n
 }
 
 // Trace is for low level tracing of activities. It takes an additional 'level'
