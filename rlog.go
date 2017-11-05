@@ -49,8 +49,8 @@ const (
 )
 
 const (
-	// The format string to prompt printing of the goroutine ID in formatted log
-	// functions
+	// GIDFormatString is the format string to cause printing of the goroutine
+	// ID in formatted log functions
 	GIDFormatString = "%G"
 )
 

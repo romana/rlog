@@ -305,7 +305,7 @@ func TestLogCallerInfo(t *testing.T) {
 	var moduleName string
 	if dirPath != "" {
 		dirPath = dirPath[:len(dirPath)-1]
-		dirPath, moduleName = path.Split(dirPath)
+		_, moduleName = path.Split(dirPath)
 	}
 	moduleAndFileName := moduleName + "/" + fileName
 
