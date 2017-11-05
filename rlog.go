@@ -49,6 +49,8 @@ const (
 )
 
 const (
+	// The format string to prompt printing of the goroutine ID in formatted log
+	// functions
 	GIDFormatString = "%G"
 )
 
@@ -277,9 +279,8 @@ func (f filter) match(filename string, level int) (bool, bool) {
 func updateIfNeeded(oldVal string, newVal string, priority bool) string {
 	if priority || oldVal == "" {
 		return newVal
-	} else {
-		return oldVal
 	}
+	return oldVal
 }
 
 // updateConfigFromFile reads a configuration from the specified config file.
@@ -573,8 +574,8 @@ func basicLog(logLevel int, traceLevel int, isLocked bool, format string, prefix
 	}
 
 	// Extract information about the caller of the log function, if requested.
-	var callingFuncName string = ""
-	var moduleAndFileName string = ""
+	var callingFuncName string
+	var moduleAndFileName string
 	pc, fullFilePath, line, ok := runtime.Caller(2)
 	if ok {
 		callingFuncName = runtime.FuncForPC(pc).Name()
@@ -583,10 +584,10 @@ func basicLog(logLevel int, traceLevel int, isLocked bool, format string, prefix
 		// different path formats on different systems, so we use that instead
 		// of just string-split.
 		dirPath, fileName := path.Split(fullFilePath)
-		var moduleName string = ""
+		var moduleName string
 		if dirPath != "" {
 			dirPath = dirPath[:len(dirPath)-1]
-			dirPath, moduleName = path.Split(dirPath)
+			_, moduleName = path.Split(dirPath)
 		}
 		moduleAndFileName = moduleName + "/" + fileName
 	}

@@ -302,7 +302,7 @@ func TestLogCallerInfo(t *testing.T) {
 	// should be formatted by rlog
 	callingFuncName := runtime.FuncForPC(pc).Name()
 	dirPath, fileName := path.Split(fullFilePath)
-	var moduleName string = ""
+	var moduleName string
 	if dirPath != "" {
 		dirPath = dirPath[:len(dirPath)-1]
 		dirPath, moduleName = path.Split(dirPath)

@@ -181,7 +181,7 @@
 // the default values. Next, it looks for the rlog config file. If it cannot find
 // the config file it will quietly continue without error. If the config file is
 // found then the configuration from environment variables is combined with the
-// configuraton from the config file. More about how this combination works, and
+// configuration from the config file. More about how this combination works, and
 // what takes precedence, in a moment.
 //
 //
