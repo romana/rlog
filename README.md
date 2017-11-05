@@ -25,10 +25,9 @@ It is called "rlog", because it was originally written for the
 * Every log function comes in a 'plain' version (to be used like Println)
   and in a formatted version (to be used like Printf). For example, there
   is Debug() and Debugf(), which takes a format string as first parameter.
-* In the formatted log functions - ending with 'f' - rlog provides a special
-  formatting directive '%G' to log the goroutine ID.
 * Can be configured to print caller info (process ID, module filename and line,
-  function name).
+  function name). In addition, can also print the goroutine ID in the caller
+  info.
 * Has NO external dependencies, except things contained in the standard Go
   library.
 * Fully configurable date/time format.
@@ -81,6 +80,11 @@ environment variables or via a config file.
   information, consisting of the process ID, file and line number as well as
   function name from which the log message was called. Default: No - meaning
   that no caller info is logged.
+* RLOG_GOROUTINE_ID: If this variable is set to "1", "yes" or something else
+  that evaluates to 'true' AND the printing of caller info is requested, then
+  the caller info contains the goroutine ID, separated from the process ID by a
+  ':'. Note that calculation of the goroutine ID has a performance impact, so
+  please only enable this option if needed.
 * RLOG_TIME_FORMAT: Use this variable to customize the date/time format. The
   format is specified either by the well known formats listed in
   https://golang.org/src/time/format.go, for example "UnixDate" or "RFC3339".
@@ -296,7 +300,8 @@ With time stamp, trace to level 2, log level WARNING, no caller info:
     2016-12-05T12:03:41+13:00 TRACE(2) : We're 2 levels down now...
 
 With time stamp, log level INFO, no trace logging (switched off by unsetting
-the variable), but with caller info:
+the variable), but with caller info ('23730' in the example below is the
+process ID):
 
     $ export RLOG_CALLER_INFO=yes
     $ export RLOG_LOG_LEVEL=INFO

@@ -39,7 +39,8 @@
 //
 //
 // • Can be configured to print caller info (module filename and line, function
-// name).
+// name). In addition, can also print the goroutine ID in the caller
+// info.
 //
 //
 // • Has NO external dependencies, except things contained in the standard Go
@@ -109,6 +110,13 @@
 // information, consisting of the file and line number as well as function name
 // from which the log message was called. Default: No - meaning that no caller
 // info is logged.
+//
+//
+// • RLOG_GOROUTINE_ID: If this variable is set to "1", "yes" or something else
+// that evaluates to 'true' AND the printing of caller info is requested, then
+// the caller info contains the goroutine ID, separated from the process ID by a
+// ':'. Note that calculation of the goroutine ID has a performance impact, so
+// please only enable this option if needed.
 //
 //
 // • RLOG_TIME_FORMAT: Use this variable to customize the date/time format. The
@@ -354,7 +362,8 @@
 //   2016-12-05T12:03:41+13:00 TRACE(2) : We're 2 levels down now...
 //
 // With time stamp, log level INFO, no trace logging (switched off by unsetting
-// the variable), but with caller info:
+// the variable), but with caller info ('23730' in the example below is the
+// process ID):
 //
 //
 //   $ export RLOG_CALLER_INFO=yes
@@ -362,18 +371,18 @@
 //   $ export RLOG_TRACE_LEVEL=
 //   $ go run examples/example.go
 //
-//   2016-12-05T12:04:33+13:00 INFO     : [examples/example.go:22 (main.main)] Start of program
-//   2016-12-05T12:04:33+13:00 INFO     : [examples/example.go:23 (main.main)] rlog is controlled via environment variables.
-//   2016-12-05T12:04:33+13:00 INFO     : [examples/example.go:24 (main.main)] Try the following settings:
-//   2016-12-05T12:04:33+13:00 INFO     : [examples/example.go:25 (main.main)]    export RLOG_LOG_LEVEL=DEBUG
-//   2016-12-05T12:04:33+13:00 INFO     : [examples/example.go:26 (main.main)]    export RLOG_TRACE_LEVEL=5
-//   2016-12-05T12:04:33+13:00 INFO     : [examples/example.go:27 (main.main)]    export RLOG_CALLER_INFO=yes
-//   2016-12-05T12:04:33+13:00 INFO     : [examples/example.go:29 (main.main)] Format strings are possible 123
-//   2016-12-05T12:04:33+13:00 WARN     : [examples/example.go:30 (main.main)] Warning level log message
-//   2016-12-05T12:04:33+13:00 ERROR    : [examples/example.go:31 (main.main)] Error level log message
-//   2016-12-05T12:04:33+13:00 CRITICAL : [examples/example.go:32 (main.main)] Critical level log message
-//   2016-12-05T12:04:33+13:00 INFO     : [examples/example.go:16 (main.someRecursiveFunction)] Reached end of recursion at level 10
-//   2016-12-05T12:04:33+13:00 INFO     : [examples/example.go:42 (main.main)] About to change log output. Check /tmp/rlog-output.log...
+//   2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:22 (main.main)] Start of program
+//   2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:23 (main.main)] rlog is controlled via environment variables.
+//   2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:24 (main.main)] Try the following settings:
+//   2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:25 (main.main)]    export RLOG_LOG_LEVEL=DEBUG
+//   2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:26 (main.main)]    export RLOG_TRACE_LEVEL=5
+//   2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:27 (main.main)]    export RLOG_CALLER_INFO=yes
+//   2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:29 (main.main)] Format strings are possible 123
+//   2016-12-05T12:04:33+13:00 WARN     : [23730 examples/example.go:30 (main.main)] Warning level log message
+//   2016-12-05T12:04:33+13:00 ERROR    : [23730 examples/example.go:31 (main.main)] Error level log message
+//   2016-12-05T12:04:33+13:00 CRITICAL : [23730 examples/example.go:32 (main.main)] Critical level log message
+//   2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:16 (main.someRecursiveFunction)] Reached end of recursion at level 10
+//   2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:42 (main.main)] About to change log output. Check /tmp/rlog-output.log...
 //
 // Without time stamp, no trace logging, no caller info:
 //

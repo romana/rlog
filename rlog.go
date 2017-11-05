@@ -48,12 +48,6 @@ const (
 	levelTrace
 )
 
-const (
-	// GIDFormatString is the format string to cause printing of the goroutine
-	// ID in formatted log functions
-	GIDFormatString = "%G"
-)
-
 // Translation map from level to string representation
 var levelStrings = map[int]string{
 	levelTrace: "TRACE",
@@ -104,6 +98,7 @@ type rlogConfig struct {
 	logStream       string // Name of logstream: stdout, stderr or NONE
 	logNoTime       string // Flag to determine if date/time is logged at all
 	showCallerInfo  string // Flag to determine if caller info is logged
+	showGoroutineID string // Flag to determine if goroute ID shows in caller info
 	confCheckInterv string // Interval in seconds for checking config file
 }
 
@@ -118,9 +113,10 @@ var configFromEnvVars rlogConfig
 // config file and produce pre-processed configuration values, which are stored
 // in those variables below.
 var (
-	settingShowCallerInfo bool   // whether we log caller info
-	settingDateTimeFormat string // flags for date/time output
-	settingConfFile       string // config file name
+	settingShowCallerInfo  bool   // whether we log caller info
+	settingShowGoroutineID bool   // whether we show goroutine ID in caller info
+	settingDateTimeFormat  string // flags for date/time output
+	settingConfFile        string // config file name
 	// how often we check the conf file
 	settingCheckInterval time.Duration = 15 * time.Second
 
@@ -348,6 +344,8 @@ func updateConfigFromFile(config *rlogConfig) {
 			config.logNoTime = updateIfNeeded(config.logNoTime, val, priority)
 		case "RLOG_CALLER_INFO":
 			config.showCallerInfo = updateIfNeeded(config.showCallerInfo, val, priority)
+		case "RLOG_GOROUTINE_ID":
+			config.showGoroutineID = updateIfNeeded(config.showGoroutineID, val, priority)
 		default:
 			rlogIssue("Unknown or illegal setting name in config file %s:%d. Ignored.",
 				settingConfFile, i)
@@ -369,6 +367,7 @@ func init() {
 		logStream:       strings.ToUpper(os.Getenv("RLOG_LOG_STREAM")),
 		logNoTime:       os.Getenv("RLOG_LOG_NOTIME"),
 		showCallerInfo:  os.Getenv("RLOG_CALLER_INFO"),
+		showGoroutineID: os.Getenv("RLOG_GOROUTINE_ID"),
 		confCheckInterv: os.Getenv("RLOG_CONF_CHECK_INTERVAL"),
 	}
 	// Pass the environment variable config through to the next stage, which
@@ -451,6 +450,7 @@ func initialize(config rlogConfig, reInitEnvVars bool) {
 		}
 	}
 	settingShowCallerInfo = isTrueBoolString(config.showCallerInfo)
+	settingShowGoroutineID = isTrueBoolString(config.showGoroutineID)
 
 	// initialize filters for trace (by default no trace output) and log levels
 	// (by default INFO level).
@@ -615,15 +615,19 @@ func basicLog(logLevel int, traceLevel int, isLocked bool, format string, prefix
 
 	callerInfo := ""
 	if settingShowCallerInfo {
-		callerInfo = fmt.Sprintf("[%d %s:%d (%s)] ", os.Getpid(),
-			moduleAndFileName,
-			line, callingFuncName)
+		if settingShowGoroutineID {
+			callerInfo = fmt.Sprintf("[%d:%d %s:%d (%s)] ", os.Getpid(),
+				getGID(), moduleAndFileName, line, callingFuncName)
+		} else {
+			callerInfo = fmt.Sprintf("[%d %s:%d (%s)] ", os.Getpid(),
+				moduleAndFileName, line, callingFuncName)
+		}
 	}
 
 	// Assemble the actual log line
 	var msg string
 	if format != "" {
-		msg = fmtWithGID(format, a...)
+		msg = fmt.Sprintf(format, a...)
 	} else {
 		msg = fmt.Sprintln(a...)
 	}
@@ -636,16 +640,6 @@ func basicLog(logLevel int, traceLevel int, isLocked bool, format string, prefix
 	if logWriterFile != nil {
 		logWriterFile.Print(logLine)
 	}
-}
-
-// fmtWithGID is like fmt.Sprintf, but adds another format character,
-// %G, which will be subsituted with Goroutine ID.
-func fmtWithGID(s string, args ...interface{}) string {
-	if strings.ContainsAny(s, GIDFormatString) {
-		gid := fmt.Sprintf("%d", getGID())
-		s = strings.Replace(s, GIDFormatString, gid, -1)
-	}
-	return fmt.Sprintf(s, args...)
 }
 
 // getGID gets the current goroutine ID (algorithm from
