@@ -25,8 +25,10 @@ It is called "rlog", because it was originally written for the
 * Every log function comes in a 'plain' version (to be used like Println)
   and in a formatted version (to be used like Printf). For example, there
   is Debug() and Debugf(), which takes a format string as first parameter.
-* Can be configured to print caller info (module filename and line, function
-  name).
+* In the formatted log functions - ending with 'f' - rlog provides a special
+  formatting directive '%G' to log the goroutine ID.
+* Can be configured to print caller info (process ID, module filename and line,
+  function name).
 * Has NO external dependencies, except things contained in the standard Go
   library.
 * Fully configurable date/time format.
@@ -76,9 +78,9 @@ environment variables or via a config file.
   messages are logged.
 * RLOG_CALLER_INFO: If this variable is set to "1", "yes" or something else
   that evaluates to 'true' then the message also contains the caller
-  information, consisting of the file and line number as well as function name
-  from which the log message was called. Default: No - meaning that no caller
-  info is logged.
+  information, consisting of the process ID, file and line number as well as
+  function name from which the log message was called. Default: No - meaning
+  that no caller info is logged.
 * RLOG_TIME_FORMAT: Use this variable to customize the date/time format. The
   format is specified either by the well known formats listed in
   https://golang.org/src/time/format.go, for example "UnixDate" or "RFC3339".
@@ -301,18 +303,18 @@ the variable), but with caller info:
     $ export RLOG_TRACE_LEVEL=
     $ go run examples/example.go
 
-    2016-12-05T12:04:33+13:00 INFO     : [examples/example.go:22 (main.main)] Start of program
-    2016-12-05T12:04:33+13:00 INFO     : [examples/example.go:23 (main.main)] rlog is controlled via environment variables.
-    2016-12-05T12:04:33+13:00 INFO     : [examples/example.go:24 (main.main)] Try the following settings:
-    2016-12-05T12:04:33+13:00 INFO     : [examples/example.go:25 (main.main)]    export RLOG_LOG_LEVEL=DEBUG
-    2016-12-05T12:04:33+13:00 INFO     : [examples/example.go:26 (main.main)]    export RLOG_TRACE_LEVEL=5
-    2016-12-05T12:04:33+13:00 INFO     : [examples/example.go:27 (main.main)]    export RLOG_CALLER_INFO=yes
-    2016-12-05T12:04:33+13:00 INFO     : [examples/example.go:29 (main.main)] Format strings are possible 123
-    2016-12-05T12:04:33+13:00 WARN     : [examples/example.go:30 (main.main)] Warning level log message
-    2016-12-05T12:04:33+13:00 ERROR    : [examples/example.go:31 (main.main)] Error level log message
-    2016-12-05T12:04:33+13:00 CRITICAL : [examples/example.go:32 (main.main)] Critical level log message
-    2016-12-05T12:04:33+13:00 INFO     : [examples/example.go:16 (main.someRecursiveFunction)] Reached end of recursion at level 10
-    2016-12-05T12:04:33+13:00 INFO     : [examples/example.go:42 (main.main)] About to change log output. Check /tmp/rlog-output.log...
+    2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:22 (main.main)] Start of program
+    2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:23 (main.main)] rlog is controlled via environment variables.
+    2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:24 (main.main)] Try the following settings:
+    2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:25 (main.main)]    export RLOG_LOG_LEVEL=DEBUG
+    2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:26 (main.main)]    export RLOG_TRACE_LEVEL=5
+    2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:27 (main.main)]    export RLOG_CALLER_INFO=yes
+    2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:29 (main.main)] Format strings are possible 123
+    2016-12-05T12:04:33+13:00 WARN     : [23730 examples/example.go:30 (main.main)] Warning level log message
+    2016-12-05T12:04:33+13:00 ERROR    : [23730 examples/example.go:31 (main.main)] Error level log message
+    2016-12-05T12:04:33+13:00 CRITICAL : [23730 examples/example.go:32 (main.main)] Critical level log message
+    2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:16 (main.someRecursiveFunction)] Reached end of recursion at level 10
+    2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:42 (main.main)] About to change log output. Check /tmp/rlog-output.log...
 
 Without time stamp, no trace logging, no caller info:
 
