@@ -1,4 +1,4 @@
-package logging
+package main
 
 import (
 	"errors"
@@ -49,7 +49,7 @@ var levelNumbers = map[string]int{
 
 // Path to the config file. Defined here for standalone example purpose
 const (
-	rlogConfigFile = "/tmp/rlog.conf"
+	rlogConfigFile      = "/tmp/rlog.conf"
 	rlogConfigFileUmask = 0644
 )
 
@@ -89,16 +89,31 @@ func setGlobalLogConf(level string, trace int) error {
 		// replace config lines
 		lines := strings.Split(string(configFile), "\n")
 
+		// check for pre-existing values in config, override or append
+		hasLogLevelEntry := false
+		hasTraceLevelEntry := false
+
 		for i, line := range lines {
 			if strings.Contains(line, "RLOG_LOG_LEVEL") {
 				lines[i] = "RLOG_LOG_LEVEL = " + level
+				hasLogLevelEntry = true
 				continue
 			}
 
 			if strings.Contains(line, "RLOG_TRACE_LEVEL") {
 				lines[i] = "RLOG_TRACE_LEVEL = " + strconv.Itoa(trace)
+				hasTraceLevelEntry = true
 			}
 		}
+
+		// append new options if neccessary
+		if !hasLogLevelEntry {
+			lines = append(lines, "RLOG_LOG_LEVEL = "+level)
+		}
+		if !hasTraceLevelEntry {
+			lines = append(lines, "RLOG_TRACE_LEVEL = "+strconv.Itoa(trace))
+		}
+
 		output := strings.Join(lines, "\n")
 		err = ioutil.WriteFile(rlogConfigFile, []byte(output), rlogConfigFileUmask)
 
@@ -109,10 +124,17 @@ func setGlobalLogConf(level string, trace int) error {
 
 		// set new config
 		rlog.SetConfFile(rlogConfigFile)
-		rlog.Debugf("[LOG] switching to log level %v with trace %v", level, trace)
 
 		return nil
 	}
 
 	return errors.New("invalid value for level, must be valid rlog log level")
+}
+
+func main() {
+	// check file contents of rlogConfFile to see results e.g. with: "cat /tmp/rlog.conf" before and after
+	setGlobalLogConf("DEBUG", 1)
+	rlog.Trace(3, "this will not appear in the log")
+	setGlobalLogConf("DEBUG", 3)
+	rlog.Trace(3, "this will appear in the log")
 }
