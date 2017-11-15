@@ -32,6 +32,15 @@ func main() {
 	rlog.Error("Error level log message")
 	rlog.Critical("Critical level log message")
 
+	// Example of how to change settings programmatically from within
+	// the running program: Modify your own environment variables.
+	// Note that if the config file specifies the value with a '!' then
+	// this value cannot be changed by modifying the environment variable.
+	rlog.Debug("You can't see this if the log level is higher than DEBUG.")
+	os.Setenv("RLOG_LOG_LEVEL", "DEBUG")
+	rlog.UpdateEnv()
+	rlog.Debug("You can see this message, because we changed level to DEBUG.")
+
 	// Example of selective trace logging
 	rlog.Trace(1, "Trace messages have their own numeric levels")
 	rlog.Trace(1, "To see them set RLOG_TRACE_LEVEL to the cut-off number")

@@ -59,14 +59,14 @@ config file.
 Rlog is configured via the following settings, which may either be defined as
 environment variables or via a config file.
 
-* RLOG_LOG_LEVEL: Set to "DEBUG", "INFO", "WARN", "ERROR", "CRITICAL" or
+* `RLOG_LOG_LEVEL`: Set to "DEBUG", "INFO", "WARN", "ERROR", "CRITICAL" or
   "NONE". Any message of a level >= than what's configured will be printed. If
   this is not defined it will default to "INFO". If it is set to "NONE" then
   all logging is disabled, except Trace logs, which are controlled via a
   separate variable. In addition, log levels can be set for individual files
   (see below for more information). Default: INFO - meaning that INFO and
   higher is logged.
-* RLOG_TRACE_LEVEL: "Trace" log messages take an additional numeric level as
+* `RLOG_TRACE_LEVEL`: "Trace" log messages take an additional numeric level as
   first parameter. The user can specify an arbitrary number of levels. Set
   RLOG_TRACE_LEVEL to a number. All Trace messages with a level <=
   RLOG_TRACE_LEVEL will be printed. If this variable is undefined, or set to -1
@@ -75,32 +75,32 @@ environment variables or via a config file.
   output becomes. In addition, trace levels can be set for individual files
   (see below for more information). Default: Not set - meaning that no trace
   messages are logged.
-* RLOG_CALLER_INFO: If this variable is set to "1", "yes" or something else
+* `RLOG_CALLER_INFO`: If this variable is set to "1", "yes" or something else
   that evaluates to 'true' then the message also contains the caller
   information, consisting of the process ID, file and line number as well as
   function name from which the log message was called. Default: No - meaning
   that no caller info is logged.
-* RLOG_GOROUTINE_ID: If this variable is set to "1", "yes" or something else
+* `RLOG_GOROUTINE_ID`: If this variable is set to "1", "yes" or something else
   that evaluates to 'true' AND the printing of caller info is requested, then
   the caller info contains the goroutine ID, separated from the process ID by a
   ':'. Note that calculation of the goroutine ID has a performance impact, so
   please only enable this option if needed.
-* RLOG_TIME_FORMAT: Use this variable to customize the date/time format. The
+* `RLOG_TIME_FORMAT`: Use this variable to customize the date/time format. The
   format is specified either by the well known formats listed in
   https://golang.org/src/time/format.go, for example "UnixDate" or "RFC3339".
   Or as an example date/time output, which is described here:
   https://golang.org/pkg/time/#Time.Format Default: Not set - formatted
   according to RFC3339.
-* RLOG_LOG_NOTIME: If this variable is set to "1", "yes" or something else
+* `RLOG_LOG_NOTIME`: If this variable is set to "1", "yes" or something else
   that evaluates to 'true' then no date/time stamp is logged with each log
   message. This is useful in environments that use systemd where access to the
   logs via their logging tools already gives you time stamps. Default: No -
   meaning that time/date is logged.
-* RLOG_LOG_FILE: Provide a filename here to determine if the logfile should
+* `RLOG_LOG_FILE`: Provide a filename here to determine if the logfile should
   be written to a file, in addition to the output stream specified in
   RLOG_LOG_STREAM. Default: Not set - meaning that output is not written to a
   file.
-* RLOG_LOG_STREAM: Use this to direct the log output to a different output
+* `RLOG_LOG_STREAM`: Use this to direct the log output to a different output
   stream, instead of stderr. This accepts three values: "stderr", "stdout" or
   "none". If either stderr or stdout is defined here AND a logfile is specified
   via RLOG_LOG_FILE then the output is sent to both. Default: Not set -
@@ -109,15 +109,15 @@ environment variables or via a config file.
 There are two more settings, related to the configuration file, which can only
 be set via environment variables.
 
-* RLOG_CONF_FILE: If this variable is set then rlog looks for the config
-  file at the specified location, which needs to be the absolute path of the
+* `RLOG_CONF_FILE`: If this variable is set then rlog looks for the config
+  file at the specified location, which needs to be the path of the
   file. If this variable is not defined, then rlog will look for the config
-  file in "/etc/rlog/your-executable-name.conf". Therefore, by default every
+  file in `/etc/rlog/<your-executable-name>.conf`. Therefore, by default every
   executable has its own config file. By setting this variable, you could
   force multiple processes to share the same config file.
-  Note that with the SetConfFile() function you can specify a new config file
+  Note that with the `SetConfFile()` function you can specify a new config file
   programmatically at any time, even with a relative path.
-* RLOG_CONF_CHECK_INTERVAL: Number of seconds between checking whether the
+* `RLOG_CONF_CHECK_INTERVAL`: Number of seconds between checking whether the
   config file has changed. By default, this is set to 15 seconds. This means
   that within 15 seconds a changed logging configuration in the config file
   will take effect. Note that this check is only performed when a log message
@@ -135,8 +135,8 @@ values then they will be silently ignored and a default value will be used.
 
 A config file for rlog is entirely optional, since rlog works just fine even
 without it. However, it does provide you with a very neat feature: You can
-change the logging configuration of a running program without having to restart
-it!
+change the logging configuration of a running program from the outside and
+without having to restart it!
 
 When rlog is imported it starts out with the defaults described above. It then
 takes an initial configuration from environment variables, which may override
@@ -146,32 +146,21 @@ found then the configuration from environment variables is combined with the
 configuration from the config file. More about how this combination works, and
 what takes precedence, in a moment.
 
-### Updating the logging config of a running program
+### Config file location
 
-Every time you log a message and at least RLOG_CONF_CHECK_INTERVAL seconds have
-elapsed since the last reading of the config file, rlog will automatically
-re-read the content of the conf file and re-apply the configuration it finds
-there over the initial configuration, which was based on the environment
-variables.
-
-You can always just delete the config file to go back to the configuration
-based on environment variables.
-
-### Logfile location
-
-The absolute path for the config file can be set via the RLOG_CONF_FILE
+The path for the config file can be set via the RLOG_CONF_FILE
 environment variable. Absent that, rlog looks for a config file in
-"/etc/rlog/your-executable-name.conf". This means that you can easily provide
+`/etc/rlog/<your-executable-name>.conf`. This means that you can easily provide
 different logging configurations for each of your processes.
 
 A new config file location can also be specified at any time via the
 SetConfFile() function. An absolute or relative path may be specfied with that
 function.
 
-### Logfile format
+### Config file format
 
-The format of the logfile is simple. Each setting is referred to by the same
-name as the environment variable. So, your config file may look like this:
+The format of the config file is simple. Each setting is referred to by the
+same name as the environment variable. So, your config file may look like this:
 
     # Comment lines start with a '#'
     RLOG_LOG_LEVEL  = WARN
@@ -210,6 +199,35 @@ An example of using '!' in the config file:
     RLOG_LOG_STREAM=stdout
     !RLOG_TIME_FORMAT=UnixDate
     RLOG_LOG_FILE=/var/log/myapp.log
+
+
+## Updating the logging config of a running program
+
+### From the outside: By modifying the config file
+
+Every time you log a message and at least RLOG_CONF_CHECK_INTERVAL seconds have
+elapsed since the last reading of the config file, rlog will automatically
+re-read the content of the conf file and re-apply the configuration it finds
+there over the initial configuration, which was based on the environment
+variables.
+
+You can always just delete the config file to go back to the configuration
+based solely on environment variables.
+
+### From the inside: By modifying your own environment variables
+
+A running program may also change its rlog configuration on its own: The
+process can use the `os.Setenv()` function to modify its own environment
+variables and then call `rlog.UpdatEnv()` to reapply the settings
+from the environment variables. The `examples/example.go` file shows how this
+is done. But in short:
+
+    // Programmatically change an rlog setting from within the program
+    os.Setenv("RLOG_LOG_LEVEL", "DEBUG")
+    rlog.UpdateEnv()
+
+Note that this will not change rlog behaviour if the value for this config
+setting was specified with a '!' in the config file.
 
 
 ## Per file level log and trace levels
@@ -291,35 +309,34 @@ With time stamp, trace to level 2, log level WARNING, no caller info:
     $ export RLOG_TRACE_LEVEL=2
     $ go run examples/example.go
 
-    2016-12-05T12:03:41+13:00 WARN     : Warning level log message
-    2016-12-05T12:03:41+13:00 ERROR    : Error level log message
-    2016-12-05T12:03:41+13:00 CRITICAL : Critical level log message
-    2016-12-05T12:03:41+13:00 TRACE(1) : Trace messages have their own numeric levels
-    2016-12-05T12:03:41+13:00 TRACE(1) : To see them set RLOG_TRACE_LEVEL to the cut-off number
-    2016-12-05T12:03:41+13:00 TRACE(1) : We're 1 levels down now...
-    2016-12-05T12:03:41+13:00 TRACE(2) : We're 2 levels down now...
+    2017-11-16T08:06:56+13:00 WARN     : Warning level log message
+    2017-11-16T08:06:56+13:00 ERROR    : Error level log message
+    2017-11-16T08:06:56+13:00 CRITICAL : Critical level log message
+    2017-11-16T08:06:56+13:00 DEBUG    : You can see this message, because we changed level to DEBUG.
+    2017-11-16T08:06:56+13:00 TRACE(1) : Trace messages have their own numeric levels
+    2017-11-16T08:06:56+13:00 TRACE(1) : To see them set RLOG_TRACE_LEVEL to the cut-off number
+    2017-11-16T08:06:56+13:00 TRACE(1) : We're 1 levels down now...
+    2017-11-16T08:06:56+13:00 TRACE(2) : We're 2 levels down now...
+    2017-11-16T08:06:56+13:00 INFO     : Reached end of recursion at level 10
+    2017-11-16T08:06:56+13:00 INFO     : About to change log output. Check /tmp/rlog-output.log...
+    2017-11-16T08:06:56+13:00 INFO     : Back to stderr
 
-With time stamp, log level INFO, no trace logging (switched off by unsetting
+With time stamp, log level WARN, no trace logging (switched off by unsetting
 the variable), but with caller info ('23730' in the example below is the
 process ID):
 
     $ export RLOG_CALLER_INFO=yes
-    $ export RLOG_LOG_LEVEL=INFO
+    $ export RLOG_LOG_LEVEL=WARN
     $ export RLOG_TRACE_LEVEL=
     $ go run examples/example.go
 
-    2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:22 (main.main)] Start of program
-    2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:23 (main.main)] rlog is controlled via environment variables.
-    2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:24 (main.main)] Try the following settings:
-    2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:25 (main.main)]    export RLOG_LOG_LEVEL=DEBUG
-    2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:26 (main.main)]    export RLOG_TRACE_LEVEL=5
-    2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:27 (main.main)]    export RLOG_CALLER_INFO=yes
-    2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:29 (main.main)] Format strings are possible 123
-    2016-12-05T12:04:33+13:00 WARN     : [23730 examples/example.go:30 (main.main)] Warning level log message
-    2016-12-05T12:04:33+13:00 ERROR    : [23730 examples/example.go:31 (main.main)] Error level log message
-    2016-12-05T12:04:33+13:00 CRITICAL : [23730 examples/example.go:32 (main.main)] Critical level log message
-    2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:16 (main.someRecursiveFunction)] Reached end of recursion at level 10
-    2016-12-05T12:04:33+13:00 INFO     : [23730 examples/example.go:42 (main.main)] About to change log output. Check /tmp/rlog-output.log...
+    2017-11-16T08:07:57+13:00 WARN     : [21233 examples/example.go:31 (main.main)] Warning level log message
+    2017-11-16T08:07:57+13:00 ERROR    : [21233 examples/example.go:32 (main.main)] Error level log message
+    2017-11-16T08:07:57+13:00 CRITICAL : [21233 examples/example.go:33 (main.main)] Critical level log message
+    2017-11-16T08:07:57+13:00 DEBUG    : [21233 examples/example.go:42 (main.main)] You can see this message, because we changed level to DEBUG.
+    2017-11-16T08:07:57+13:00 INFO     : [21233 examples/example.go:17 (main.someRecursiveFunction)] Reached end of recursion at level 10
+    2017-11-16T08:07:57+13:00 INFO     : [21233 examples/example.go:52 (main.main)] About to change log output. Check /tmp/rlog-output.log...
+    2017-11-16T08:07:57+13:00 INFO     : [21233 examples/example.go:61 (main.main)] Back to stderr
 
 Without time stamp, no trace logging, no caller info:
 
@@ -327,18 +344,13 @@ Without time stamp, no trace logging, no caller info:
     $ export RLOG_CALLER_INFO=no
     $ go run examples/example.go
 
-    INFO     : Start of program
-    INFO     : rlog is controlled via environment variables.
-    INFO     : Try the following settings:
-    INFO     :    export RLOG_LOG_LEVEL=DEBUG
-    INFO     :    export RLOG_TRACE_LEVEL=5
-    INFO     :    export RLOG_CALLER_INFO=yes
-    INFO     : Format strings are possible 123
     WARN     : Warning level log message
     ERROR    : Error level log message
     CRITICAL : Critical level log message
+    DEBUG    : You can see this message, because we changed level to DEBUG.
     INFO     : Reached end of recursion at level 10
     INFO     : About to change log output. Check /tmp/rlog-output.log...
+    INFO     : Back to stderr
 
 With time stamp in RFC822 format.
 
@@ -346,36 +358,26 @@ With time stamp in RFC822 format.
     $ export RLOG_TIME_FORMAT=RFC822
     $ go run examples/example.go
 
-    05 Dec 16 12:07 NZDT INFO     : Start of program
-    05 Dec 16 12:07 NZDT INFO     : rlog is controlled via environment variables.
-    05 Dec 16 12:07 NZDT INFO     : Try the following settings:
-    05 Dec 16 12:07 NZDT INFO     :    export RLOG_LOG_LEVEL=DEBUG
-    05 Dec 16 12:07 NZDT INFO     :    export RLOG_TRACE_LEVEL=5
-    05 Dec 16 12:07 NZDT INFO     :    export RLOG_CALLER_INFO=yes
-    05 Dec 16 12:07 NZDT INFO     : Format strings are possible 123
-    05 Dec 16 12:07 NZDT WARN     : Warning level log message
-    05 Dec 16 12:07 NZDT ERROR    : Error level log message
-    05 Dec 16 12:07 NZDT CRITICAL : Critical level log message
-    05 Dec 16 12:07 NZDT INFO     : Reached end of recursion at level 10
-    05 Dec 16 12:07 NZDT INFO     : About to change log output. Check /tmp/rlog-output.log...
+    2017-11-16T08:08:49+13:00 WARN     : Warning level log message
+    2017-11-16T08:08:49+13:00 ERROR    : Error level log message
+    2017-11-16T08:08:49+13:00 CRITICAL : Critical level log message
+    2017-11-16T08:08:49+13:00 DEBUG    : You can see this message, because we changed level to DEBUG.
+    2017-11-16T08:08:49+13:00 INFO     : Reached end of recursion at level 10
+    2017-11-16T08:08:49+13:00 INFO     : About to change log output. Check /tmp/rlog-output.log...
+    2017-11-16T08:08:49+13:00 INFO     : Back to stderr
 
 With custom time stamp:
 
     $ export RLOG_TIME_FORMAT="2006/01/06 15:04:05"
     $ go run examples/example.go
 
-    2016/12/16 12:09:03 INFO     : Start of program
-    2016/12/16 12:09:03 INFO     : rlog is controlled via environment variables.
-    2016/12/16 12:09:03 INFO     : Try the following settings:
-    2016/12/16 12:09:03 INFO     :    export RLOG_LOG_LEVEL=DEBUG
-    2016/12/16 12:09:03 INFO     :    export RLOG_TRACE_LEVEL=5
-    2016/12/16 12:09:03 INFO     :    export RLOG_CALLER_INFO=yes
-    2016/12/16 12:09:03 INFO     : Format strings are possible 123
-    2016/12/16 12:09:03 WARN     : Warning level log message
-    2016/12/16 12:09:03 ERROR    : Error level log message
-    2016/12/16 12:09:03 CRITICAL : Critical level log message
-    2016/12/16 12:09:03 INFO     : Reached end of recursion at level 10
-    2016/12/16 12:09:03 INFO     : About to change log output. Check /tmp/rlog-output.log...
+    2017-11-16T08:09:08+13:00 WARN     : Warning level log message
+    2017-11-16T08:09:08+13:00 ERROR    : Error level log message
+    2017-11-16T08:09:08+13:00 CRITICAL : Critical level log message
+    2017-11-16T08:09:08+13:00 DEBUG    : You can see this message, because we changed level to DEBUG.
+    2017-11-16T08:09:08+13:00 INFO     : Reached end of recursion at level 10
+    2017-11-16T08:09:08+13:00 INFO     : About to change log output. Check /tmp/rlog-output.log...
+    2017-11-16T08:09:08+13:00 INFO     : Back to stderr
 
 
 ## Links
@@ -383,4 +385,3 @@ With custom time stamp:
 * [Goreportcard.com](https://goreportcard.com/report/github.com/romana/rlog)
 * [Godoc.com](https://godoc.org/github.com/romana/rlog)
 * [Gocover.io](http://gocover.io/github.com/romana/rlog)
-
