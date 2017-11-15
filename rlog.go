@@ -353,12 +353,10 @@ func updateConfigFromFile(config *rlogConfig) {
 	}
 }
 
-// init extracts settings for our logger from environment variables when the
-// module is imported and calls the actual initialization function with that
-// configuration.
-func init() {
+// configFromEnv extracts settings for our logger from environment variables.
+func configFromEnv() rlogConfig {
 	// Read the initial configuration from the environment variables
-	config := rlogConfig{
+	return rlogConfig{
 		logLevel:        os.Getenv("RLOG_LOG_LEVEL"),
 		traceLevel:      os.Getenv("RLOG_TRACE_LEVEL"),
 		logTimeFormat:   os.Getenv("RLOG_TIME_FORMAT"),
@@ -370,9 +368,12 @@ func init() {
 		showGoroutineID: os.Getenv("RLOG_GOROUTINE_ID"),
 		confCheckInterv: os.Getenv("RLOG_CONF_CHECK_INTERVAL"),
 	}
-	// Pass the environment variable config through to the next stage, which
-	// produces an updated config based on config file values.
-	initialize(config, true)
+}
+
+// init loads configuration from the environment variables and the
+// configuration file when the module is imorted.
+func init() {
+	UpdateEnv()
 }
 
 // getTimeFormat returns the time format we should use for time stamps in log
@@ -515,6 +516,16 @@ func initialize(config rlogConfig, reInitEnvVars bool) {
 func SetConfFile(confFileName string) {
 	configFromEnvVars.confFile = confFileName
 	initialize(configFromEnvVars, false)
+}
+
+// UpdateEnv extracts settings for our logger from environment variables and
+// calls the actual initialization function with that configuration.
+func UpdateEnv() {
+	// Get environment-based configuration
+	config := configFromEnv()
+	// Pass the environment variable config through to the next stage, which
+	// produces an updated config based on config file values.
+	initialize(config, true)
 }
 
 // SetOutput re-wires the log output to a new io.Writer. By default rlog
