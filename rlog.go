@@ -505,9 +505,20 @@ func initialize(config rlogConfig, reInitEnvVars bool) {
 		// Close the old logfile, since we are now writing to a new file
 		if currentLogFileName != "" {
 			currentLogFile.Close()
-			currentLogFileName = config.logFile
-			currentLogFile = newLogFile
 		}
+
+		/*
+		###########################################################################
+		##  Bug in original code - does not populate currentLogFileName after setting
+		##  Luke - 9th October 2018
+		##
+		##  Original code had next 2 lines within if clause
+		##
+		###########################################################################
+		*/
+
+		currentLogFileName = config.logFile
+		currentLogFile = newLogFile
 	}
 }
 
@@ -593,7 +604,17 @@ func basicLog(logLevel int, traceLevel int, isLocked bool, format string, prefix
 	// Extract information about the caller of the log function, if requested.
 	var callingFuncName string
 	var moduleAndFileName string
-	pc, fullFilePath, line, ok := runtime.Caller(2)
+
+	/*
+	###########################################################################
+	##  Amended Caller level from 2 to 3 as rlog is now wrapped in own logger
+	##  Luke - 26th September 2018
+	##
+	##  Original line -> pc, fullFilePath, line, ok := runtime.Caller(2)
+	##
+	###########################################################################
+	*/
+	pc, fullFilePath, line, ok := runtime.Caller(3)
 	if ok {
 		callingFuncName = runtime.FuncForPC(pc).Name()
 		// We only want to print or examine file and package name, so use the
@@ -760,4 +781,33 @@ func Critical(a ...interface{}) {
 // formatting.
 func Criticalf(format string, a ...interface{}) {
 	basicLog(levelCrit, notATrace, false, format, "", a...)
+}
+
+/*
+###########################################################################
+##  Added function CheckLevel to enable to check what level currently set so
+##  can add extra tracing output if needed
+##
+##  Luke - 26th September 2018
+##
+###########################################################################
+*/
+
+// Checking whether current level at at or less than level input
+func CheckLevel(levelToken string) (bool) {
+	var allowLog      bool
+
+	filterLevel, ok := levelNumbers[levelToken]
+	if !ok {
+		rlogIssue("Illegal log level string '%s'.", levelToken)
+	} 
+
+	traceLevelInt, _ := strconv.Atoi(configFromEnvVars.traceLevel)
+	if traceLevelInt > 0 {
+		allowLog=true
+	} else {
+		allowLog=logFilterSpec.matchfilters("", filterLevel)
+	}
+
+	return allowLog
 }
